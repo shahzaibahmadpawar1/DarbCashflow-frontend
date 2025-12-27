@@ -33,6 +33,7 @@ export const CashFlowDashboard = () => {
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [formData, setFormData] = useState({
     shiftId: '',
+    stationId: '',
     litersSold: '',
     ratePerLiter: '',
     cardPayments: '',
@@ -58,6 +59,7 @@ export const CashFlowDashboard = () => {
     e.preventDefault();
     try {
       await api.post(`/api/cash/shifts/${formData.shiftId}/transactions`, {
+        stationId: formData.stationId,
         litersSold: parseFloat(formData.litersSold),
         ratePerLiter: parseFloat(formData.ratePerLiter),
         cardPayments: parseFloat(formData.cardPayments || '0'),
@@ -66,6 +68,7 @@ export const CashFlowDashboard = () => {
       setShowEntryForm(false);
       setFormData({
         shiftId: '',
+        stationId: '',
         litersSold: '',
         ratePerLiter: '',
         cardPayments: '',
@@ -138,6 +141,16 @@ export const CashFlowDashboard = () => {
           <h2 className="text-xl font-semibold mb-4">Enter Cash Transaction</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Station ID</label>
+                <input
+                  type="text"
+                  required
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                  value={formData.stationId}
+                  onChange={(e) => setFormData({ ...formData, stationId: e.target.value })}
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Shift ID</label>
                 <input
