@@ -6,7 +6,8 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  const { user, logout, isAdmin, isSM, isAM } = useAuth();
+  // Removed isSM and isAM because they were unused
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,42 +30,38 @@ export const Layout = ({ children }: LayoutProps) => {
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
                   to="/dashboard"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/dashboard')
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/dashboard')
                       ? 'border-white'
                       : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
-                  }`}
+                    }`}
                 >
                   Dashboard
                 </Link>
                 <Link
                   to="/cash-flow"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/cash-flow')
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/cash-flow')
                       ? 'border-white'
                       : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
-                  }`}
+                    }`}
                 >
                   Cash Flow
                 </Link>
                 <Link
                   to="/inventory"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/inventory')
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/inventory')
                       ? 'border-white'
                       : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
-                  }`}
+                    }`}
                 >
                   Inventory
                 </Link>
                 {isAdmin && (
                   <Link
                     to="/floating-cash"
-                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                      isActive('/floating-cash')
+                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/floating-cash')
                         ? 'border-white'
                         : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
-                    }`}
+                      }`}
                   >
                     Floating Cash
                   </Link>
@@ -72,11 +69,10 @@ export const Layout = ({ children }: LayoutProps) => {
                 {isAdmin && (
                   <Link
                     to="/register"
-                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                      isActive('/register')
+                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/register')
                         ? 'border-white'
                         : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
-                    }`}
+                      }`}
                   >
                     Register User
                   </Link>
@@ -101,4 +97,3 @@ export const Layout = ({ children }: LayoutProps) => {
     </div>
   );
 };
-
