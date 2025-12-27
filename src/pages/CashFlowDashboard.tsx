@@ -27,7 +27,7 @@ interface CashTransaction {
 }
 
 export const CashFlowDashboard = () => {
-  const { user, isSM, isAM } = useAuth();
+  const { isSM, isAM } = useAuth();
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEntryForm, setShowEntryForm] = useState(false);
