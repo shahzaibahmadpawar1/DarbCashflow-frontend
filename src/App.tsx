@@ -25,7 +25,8 @@ function App() {
       <Routes>
         <Route
           path="/login"
-          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+          /* Redirect to dashboard as auth is disabled */
+          element={<Navigate to="/dashboard" replace />}
         />
         <Route
           path="/register"

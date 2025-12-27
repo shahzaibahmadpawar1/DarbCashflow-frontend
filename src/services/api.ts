@@ -27,9 +27,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // localStorage.removeItem('token');
+      // localStorage.removeItem('user');
+      // window.location.href = '/login';
+      console.warn("401 Unauthorized - Auth is bypassed on frontend but backend rejected request");
     }
     return Promise.reject(error);
   }

@@ -15,25 +15,17 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-
-    if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
-      // Verify token is still valid
-      api
-        .get('/api/auth/me')
-        .then((res) => {
-          setUser(res.data.user);
-          localStorage.setItem('user', JSON.stringify(res.data.user));
-        })
-        .catch(() => {
-          logout();
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    // AUTH DISABLED GLOBALLY
+    const mockUser: User = {
+      id: "mock-admin-id",
+      email: "admin@system.local",
+      name: "System Admin",
+      role: "Admin",
+      stationId: null,
+      areaId: null
+    };
+    setUser(mockUser);
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
