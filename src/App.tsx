@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/shared/Layout';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
-import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { CashFlowDashboard } from './pages/CashFlowDashboard';
@@ -10,7 +9,8 @@ import { InventoryDashboard } from './pages/InventoryDashboard';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
-  const { isAuthenticated, loading } = useAuth();
+  // Only keep 'loading' if you are still using the loading spinner
+  const { loading } = useAuth();
 
   if (loading) {
     return (
