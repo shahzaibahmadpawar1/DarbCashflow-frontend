@@ -45,8 +45,9 @@ export const useAuth = () => {
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'Admin';
-  const isSM = user?.role === 'SM';
-  const isAM = user?.role === 'AM';
+  // Admin has all permissions
+  const isSM = user?.role === 'SM' || isAdmin;
+  const isAM = user?.role === 'AM' || isAdmin;
 
   return {
     user,

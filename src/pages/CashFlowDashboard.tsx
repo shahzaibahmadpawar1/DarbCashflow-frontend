@@ -27,7 +27,7 @@ interface CashTransaction {
 }
 
 export const CashFlowDashboard = () => {
-  const { user, isSM } = useAuth();
+  const { user, isSM, isAM } = useAuth();
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEntryForm, setShowEntryForm] = useState(false);
@@ -239,25 +239,27 @@ export const CashFlowDashboard = () => {
                   {tx.status === 'PENDING_ACCEPTANCE' && isSM && (
                     <button
                       onClick={() => {
-                        const toUserId = prompt('Enter Area Manager User ID:');
+                        // Default to a mock AM ID if user doesn't input one, for easier testing without real users
+                        const defaultAMId = 'mock-am-id';
+                        const toUserId = prompt('Enter Area Manager User ID:', defaultAMId);
                         if (toUserId) handleTransfer(tx.id, toUserId);
                       }}
                       className="text-primary-600 hover:text-primary-900"
                     >
-                      Transfer
+                      Transfer to AM
                     </button>
                   )}
-                  {tx.status === 'PENDING_ACCEPTANCE' && user?.role === 'AM' && (
+                  {tx.status === 'PENDING_ACCEPTANCE' && isAM && (
                     <button
                       onClick={() => handleAccept(tx.id)}
-                      className="text-primary-600 hover:text-primary-900"
+                      className="text-primary-600 hover:text-primary-900 ml-4"
                     >
-                      Accept
+                      Accept Cash
                     </button>
                   )}
-                  {tx.status === 'WITH_AM' && user?.role === 'AM' && (
+                  {tx.status === 'WITH_AM' && isAM && (
                     <label className="text-primary-600 hover:text-primary-900 cursor-pointer">
-                      Deposit
+                      Deposit to Bank
                       <input
                         type="file"
                         accept="image/*"
