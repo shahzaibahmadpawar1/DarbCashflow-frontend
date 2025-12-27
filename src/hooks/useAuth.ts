@@ -15,26 +15,12 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // START: BYPASS AUTH FOR DEV
-    const mockUser: User = {
-      id: "mock-admin-id",
-      email: "admin@example.com",
-      name: "Mock Admin",
-      role: "Admin",
-      stationId: null,
-      areaId: null
-    };
-    setUser(mockUser);
-    setLoading(false);
-    return;
-    // END: BYPASS AUTH
-
-    /* Original Auth Logic - Commented out
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
     if (token && storedUser) {
       setUser(JSON.parse(storedUser));
+      // Verify token is still valid
       api
         .get('/api/auth/me')
         .then((res) => {
@@ -48,7 +34,6 @@ export const useAuth = () => {
     } else {
       setLoading(false);
     }
-    */
   }, []);
 
   const login = async (email: string, password: string) => {
