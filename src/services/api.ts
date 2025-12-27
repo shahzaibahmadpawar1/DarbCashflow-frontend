@@ -4,8 +4,7 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL ||
   (import.meta.env.MODE === 'production'
     ? 'https://darb-cashflow-backend.vercel.app'
-    : 'http://localhost:5000');
-
+    : 'https://darb-cashflow-backend.vercel.app'); // Use deployed backend for local dev too
 const api = axios.create({
   baseURL: API_URL,
   headers: {

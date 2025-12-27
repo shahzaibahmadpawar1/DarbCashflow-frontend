@@ -143,7 +143,7 @@ export const CashFlowDashboard = () => {
                 <input
                   type="text"
                   required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                   value={formData.shiftId}
                   onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
                 />
@@ -154,7 +154,7 @@ export const CashFlowDashboard = () => {
                   type="number"
                   step="0.01"
                   required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                   value={formData.litersSold}
                   onChange={(e) => setFormData({ ...formData, litersSold: e.target.value })}
                 />
@@ -165,7 +165,7 @@ export const CashFlowDashboard = () => {
                   type="number"
                   step="0.01"
                   required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                   value={formData.ratePerLiter}
                   onChange={(e) => setFormData({ ...formData, ratePerLiter: e.target.value })}
                 />
@@ -175,7 +175,7 @@ export const CashFlowDashboard = () => {
                 <input
                   type="number"
                   step="0.01"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                   value={formData.cardPayments}
                   onChange={(e) => setFormData({ ...formData, cardPayments: e.target.value })}
                 />
@@ -185,7 +185,7 @@ export const CashFlowDashboard = () => {
                 <input
                   type="number"
                   step="0.01"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                   value={formData.bankDeposit}
                   onChange={(e) => setFormData({ ...formData, bankDeposit: e.target.value })}
                 />
