@@ -26,9 +26,15 @@ interface CashTransaction {
   };
 }
 
+interface Station {
+  id: string;
+  name: string;
+}
+
 export const CashFlowDashboard = () => {
   const { isSM, isAM } = useAuth();
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
+  const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -42,7 +48,17 @@ export const CashFlowDashboard = () => {
 
   useEffect(() => {
     loadTransactions();
+    loadStations();
   }, []);
+
+  const loadStations = async () => {
+    try {
+      const res = await api.get('/api/stations');
+      setStations(res.data.stations);
+    } catch (error) {
+      console.error('Failed to load stations', error);
+    }
+  };
 
   const loadTransactions = async () => {
     try {
@@ -142,14 +158,33 @@ export const CashFlowDashboard = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Station ID</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium text-gray-700">Station</label>
+                <select
                   required
                   className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                   value={formData.stationId}
-                  onChange={(e) => setFormData({ ...formData, stationId: e.target.value })}
-                />
+                  onChange={async (e) => {
+                    const stationId = e.target.value;
+                    setFormData({ ...formData, stationId });
+                    if (stationId) {
+                      try {
+                        const res = await api.get(`/api/shifts/stations/${stationId}/current`);
+                        if (res.data.shift) {
+                          setFormData(prev => ({ ...prev, stationId, shiftId: res.data.shift.id }));
+                        }
+                      } catch (err) {
+                        console.error("Failed to fetch current shift", err);
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Select Station</option>
+                  {stations.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Shift ID</label>
