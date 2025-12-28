@@ -6,6 +6,8 @@ import { Dashboard } from './pages/Dashboard';
 import { CashFlowDashboard } from './pages/CashFlowDashboard';
 import { FloatingCashView } from './pages/FloatingCashView';
 import { InventoryDashboard } from './pages/InventoryDashboard';
+import { Employees } from './pages/Employees';
+import { Stations } from './pages/Stations';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
@@ -74,6 +76,26 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <InventoryDashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <Layout>
+                <Employees />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stations"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <Layout>
+                <Stations />
               </Layout>
             </ProtectedRoute>
           }

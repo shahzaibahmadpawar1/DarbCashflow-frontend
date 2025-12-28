@@ -31,8 +31,8 @@ export const Layout = ({ children }: LayoutProps) => {
                 <Link
                   to="/dashboard"
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/dashboard')
-                      ? 'border-white'
-                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                    ? 'border-white'
+                    : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
                     }`}
                 >
                   Dashboard
@@ -40,8 +40,8 @@ export const Layout = ({ children }: LayoutProps) => {
                 <Link
                   to="/cash-flow"
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/cash-flow')
-                      ? 'border-white'
-                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                    ? 'border-white'
+                    : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
                     }`}
                 >
                   Cash Flow
@@ -49,8 +49,8 @@ export const Layout = ({ children }: LayoutProps) => {
                 <Link
                   to="/inventory"
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/inventory')
-                      ? 'border-white'
-                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                    ? 'border-white'
+                    : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
                     }`}
                 >
                   Inventory
@@ -59,8 +59,8 @@ export const Layout = ({ children }: LayoutProps) => {
                   <Link
                     to="/floating-cash"
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/floating-cash')
-                        ? 'border-white'
-                        : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                      ? 'border-white'
+                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
                       }`}
                   >
                     Floating Cash
@@ -68,10 +68,32 @@ export const Layout = ({ children }: LayoutProps) => {
                 )}
                 {isAdmin && (
                   <Link
+                    to="/employees"
+                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/employees')
+                      ? 'border-white'
+                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                      }`}
+                  >
+                    Employees
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link
+                    to="/stations"
+                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/stations')
+                      ? 'border-white'
+                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                      }`}
+                  >
+                    Stations
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link
                     to="/register"
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/register')
-                        ? 'border-white'
-                        : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                      ? 'border-white'
+                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
                       }`}
                   >
                     Register User
