@@ -1,37 +1,25 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 
-
 interface User {
     id: string;
     name: string;
-    email: string;
+    employeeId: string;
     role: 'Admin' | 'SM' | 'AM';
-    station?: { name: string };
-    stationId?: string;
-}
-
-interface Station {
-    id: string;
-    name: string;
 }
 
 export const Employees = () => {
-
     const [users, setUsers] = useState<User[]>([]);
-    const [stations, setStations] = useState<Station[]>([]);
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
-        email: '',
-        password: 'password123', // Default password
+        employeeId: '',
+        password: 'password123',
         role: 'SM',
-        stationId: '',
     });
 
     useEffect(() => {
         loadUsers();
-        loadStations();
     }, []);
 
     const loadUsers = async () => {
@@ -43,15 +31,6 @@ export const Employees = () => {
         }
     };
 
-    const loadStations = async () => {
-        try {
-            const res = await api.get('/api/stations');
-            setStations(res.data.stations);
-        } catch (error) {
-            console.error('Failed to load stations', error);
-        }
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -59,10 +38,9 @@ export const Employees = () => {
             setShowForm(false);
             setFormData({
                 name: '',
-                email: '',
+                employeeId: '',
                 password: 'password123',
                 role: 'SM',
-                stationId: '',
             });
             loadUsers();
             alert('Employee created successfully');
@@ -99,13 +77,13 @@ export const Employees = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Email / ID</label>
+                                <label className="block text-sm font-medium text-gray-700">Employee ID</label>
                                 <input
-                                    type="email"
+                                    type="text"
                                     required
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    value={formData.employeeId}
+                                    onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
                                 />
                             </div>
                             <div>
@@ -120,21 +98,6 @@ export const Employees = () => {
                                     <option value="Admin">Admin</option>
                                 </select>
                             </div>
-                            {formData.role === 'SM' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Assign Station</label>
-                                    <select
-                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
-                                        value={formData.stationId}
-                                        onChange={(e) => setFormData({ ...formData, stationId: e.target.value })}
-                                    >
-                                        <option value="">Select Station</option>
-                                        {stations.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Password</label>
                                 <input
@@ -161,25 +124,21 @@ export const Employees = () => {
                     <thead className="bg-gray-50">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee ID</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Station</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {users.map((user) => (
                             <tr key={user.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.employeeId}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                     ${user.role === 'Admin' ? 'bg-purple-100 text-purple-800' :
                                             user.role === 'AM' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
                                         {user.role}
                                     </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {user.station?.name || '-'}
                                 </td>
                             </tr>
                         ))}
