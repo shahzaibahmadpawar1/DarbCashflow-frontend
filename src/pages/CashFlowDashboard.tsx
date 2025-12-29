@@ -38,7 +38,6 @@ export const CashFlowDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [formData, setFormData] = useState({
-    shiftId: '',
     stationId: '',
     litersSold: '',
     ratePerLiter: '',
@@ -74,7 +73,7 @@ export const CashFlowDashboard = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post(`/api/cash/shifts/${formData.shiftId}/transactions`, {
+      await api.post('/api/cash/transactions', {
         stationId: formData.stationId,
         litersSold: parseFloat(formData.litersSold),
         ratePerLiter: parseFloat(formData.ratePerLiter),
@@ -83,7 +82,6 @@ export const CashFlowDashboard = () => {
       });
       setShowEntryForm(false);
       setFormData({
-        shiftId: '',
         stationId: '',
         litersSold: '',
         ratePerLiter: '',
@@ -163,20 +161,7 @@ export const CashFlowDashboard = () => {
                   required
                   className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                   value={formData.stationId}
-                  onChange={async (e) => {
-                    const stationId = e.target.value;
-                    setFormData({ ...formData, stationId });
-                    if (stationId) {
-                      try {
-                        const res = await api.get(`/api/shifts/stations/${stationId}/current`);
-                        if (res.data.shift) {
-                          setFormData(prev => ({ ...prev, stationId, shiftId: res.data.shift.id }));
-                        }
-                      } catch (err) {
-                        console.error("Failed to fetch current shift", err);
-                      }
-                    }
-                  }}
+                  onChange={(e) => setFormData({ ...formData, stationId: e.target.value })}
                 >
                   <option value="">Select Station</option>
                   {stations.map((s) => (
@@ -185,16 +170,6 @@ export const CashFlowDashboard = () => {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Shift ID</label>
-                <input
-                  type="text"
-                  required
-                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
-                  value={formData.shiftId}
-                  onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
-                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Liters Sold</label>
