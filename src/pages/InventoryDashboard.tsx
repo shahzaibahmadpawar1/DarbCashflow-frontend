@@ -46,9 +46,13 @@ export const InventoryDashboard = () => {
   const [deliveryData, setDeliveryData] = useState({ tankId: '', liters: '' });
 
   useEffect(() => {
+    // For now, just set loading to false if no stationId
+    // In production, SM users should have stationId
     if (user?.stationId) {
       setStationId(user.stationId);
       loadData(user.stationId);
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -122,6 +126,19 @@ export const InventoryDashboard = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!stationId) {
+    return (
+      <div className="px-4 py-6 sm:px-0">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-yellow-900 mb-2">No Station Assigned</h2>
+          <p className="text-yellow-700">
+            You need to be assigned to a station to access the inventory dashboard. Please contact your administrator.
+          </p>
+        </div>
       </div>
     );
   }

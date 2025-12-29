@@ -3,11 +3,11 @@ import api from '../services/api';
 
 export interface User {
   id: string;
-  email: string;
+  employeeId: string;
   name: string;
   role: 'SM' | 'AM' | 'Admin';
   stationId?: string | null;
-  areaId?: string | null;
+  areaManagerId?: string | null;
 }
 
 export const useAuth = () => {
@@ -15,21 +15,25 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // AUTH DISABLED GLOBALLY
-    const mockUser: User = {
-      id: "mock-admin-id",
-      email: "admin@system.local",
-      name: "System Admin",
-      role: "Admin",
-      stationId: null,
-      areaId: null
-    };
-    setUser(mockUser);
+    // Check if user is already logged in
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+
+    if (token && storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Failed to parse stored user', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    }
+
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const response = await api.post('/api/auth/login', { email, password });
+  const login = async (employeeId: string, password: string) => {
+    const response = await api.post('/api/auth/login', { employeeId, password });
     const { token, user } = response.data;
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
@@ -60,4 +64,3 @@ export const useAuth = () => {
     isAM,
   };
 };
-

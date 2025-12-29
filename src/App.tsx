@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/shared/Layout';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
+import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { CashFlowDashboard } from './pages/CashFlowDashboard';
 import { FloatingCashView } from './pages/FloatingCashView';
@@ -24,11 +25,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route
-          path="/login"
-          /* Redirect to dashboard as auth is disabled */
-          element={<Navigate to="/dashboard" replace />}
-        />
+        <Route path="/login" element={<Login />} />
         <Route
           path="/dashboard"
           element={
@@ -89,7 +86,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
