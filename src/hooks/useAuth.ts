@@ -49,9 +49,12 @@ export const useAuth = () => {
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'Admin';
-  // Admin has all permissions
-  const isSM = user?.role === 'SM' || isAdmin;
-  const isAM = user?.role === 'AM' || isAdmin;
+  // Role checks (not including admin in SM/AM checks for dashboard display)
+  const isSM = user?.role === 'SM';
+  const isAM = user?.role === 'AM';
+  // Permission checks (admin has all permissions)
+  const canManageStation = user?.role === 'SM' || isAdmin;
+  const canManageArea = user?.role === 'AM' || isAdmin;
 
   return {
     user,
@@ -62,5 +65,7 @@ export const useAuth = () => {
     isAdmin,
     isSM,
     isAM,
+    canManageStation,
+    canManageArea,
   };
 };
