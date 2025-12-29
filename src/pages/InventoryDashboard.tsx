@@ -59,7 +59,7 @@ interface TankerDelivery {
 }
 
 export const InventoryDashboard = () => {
-  const { user, canManageStation } = useAuth();
+  const { user, canManageStation, isAdmin } = useAuth();
   const [stationId, setStationId] = useState<string>('');
   const [nozzles, setNozzles] = useState<Nozzle[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
@@ -225,6 +225,26 @@ export const InventoryDashboard = () => {
     }
   };
 
+  const handleUnlockShift = async () => {
+    if (!currentShift) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to unlock this shift? This will allow Station Managers to edit the readings again.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await api.post(`/api/inventory/shifts/${currentShift.id}/unlock`);
+      alert('Shift unlocked successfully!');
+      if (stationId) {
+        loadData(stationId);
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to unlock shift');
+    }
+  };
+
   const getFuelTypeLabel = (fuelType: string) => {
     switch (fuelType) {
       case '91_GASOLINE': return '91 Gasoline';
@@ -325,12 +345,22 @@ export const InventoryDashboard = () => {
             <h2 className="text-xl font-semibold">
               Current Shift: {currentShift.shiftType}
             </h2>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${currentShift.locked
+            <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${currentShift.locked
                 ? 'bg-red-100 text-red-800'
                 : 'bg-green-100 text-green-800'
-              }`}>
-              {currentShift.locked ? 'Locked' : 'Open'}
-            </span>
+                }`}>
+                {currentShift.locked ? 'Locked' : 'Open'}
+              </span>
+              {currentShift.locked && isAdmin && (
+                <button
+                  onClick={handleUnlockShift}
+                  className="px-4 py-2 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700"
+                >
+                  🔓 Unlock Shift
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Price Per Liter Input */}
@@ -401,8 +431,8 @@ export const InventoryDashboard = () => {
                           <button
                             onClick={() => toggleRollover(reading.nozzleId)}
                             className={`px-3 py-1 rounded text-sm ${isRollover
-                                ? 'bg-orange-100 text-orange-800'
-                                : 'bg-gray-100 text-gray-600'
+                              ? 'bg-orange-100 text-orange-800'
+                              : 'bg-gray-100 text-gray-600'
                               }`}
                           >
                             {isRollover ? 'Yes' : 'No'}
