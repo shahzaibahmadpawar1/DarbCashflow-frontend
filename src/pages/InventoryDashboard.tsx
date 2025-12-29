@@ -61,7 +61,6 @@ interface TankerDelivery {
 export const InventoryDashboard = () => {
   const { user, canManageStation, isAdmin } = useAuth();
   const [stationId, setStationId] = useState<string>('');
-  const [nozzles, setNozzles] = useState<Nozzle[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [currentShift, setCurrentShift] = useState<Shift | null>(null);
   const [closingReadings, setClosingReadings] = useState<Record<string, { value: number; isRollover: boolean }>>({});
@@ -94,13 +93,11 @@ export const InventoryDashboard = () => {
 
   const loadData = async (sid: string) => {
     try {
-      const [nozzlesRes, tanksRes, shiftRes] = await Promise.all([
-        api.get(`/api/inventory/stations/${sid}/nozzles`),
+      const [tanksRes, shiftRes] = await Promise.all([
         api.get(`/api/inventory/stations/${sid}/tanks`),
         api.get(`/api/inventory/shifts/stations/${sid}/current`),
       ]);
 
-      setNozzles(nozzlesRes.data.nozzles);
       setTanks(tanksRes.data.tanks);
       setCurrentShift(shiftRes.data.shift);
 
