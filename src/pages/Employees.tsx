@@ -6,41 +6,79 @@ interface User {
     name: string;
     employeeId: string;
     role: 'Admin' | 'SM' | 'AM';
+    station?: { name: string };
+    areaManager?: { name: string };
+}
+
+interface Station {
+    id: string;
+    name: string;
 }
 
 export const Employees = () => {
     const [users, setUsers] = useState<User[]>([]);
+    const [stations, setStations] = useState<Station[]>([]);
+    const [ams, setAms] = useState<User[]>([]);
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         employeeId: '',
         password: 'password123',
         role: 'SM',
+        stationId: '',
+        areaManagerId: '',
     });
 
     useEffect(() => {
         loadUsers();
+        loadStations();
     }, []);
 
     const loadUsers = async () => {
         try {
             const res = await api.get('/api/users');
             setUsers(res.data.users);
+            // Filter AMs for the dropdown
+            setAms(res.data.users.filter((u: User) => u.role === 'AM'));
         } catch (error) {
             console.error('Failed to load users', error);
+        }
+    };
+
+    const loadStations = async () => {
+        try {
+            const res = await api.get('/api/stations');
+            setStations(res.data.stations);
+        } catch (error) {
+            console.error('Failed to load stations', error);
         }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/api/users', formData);
+            const payload: any = {
+                name: formData.name,
+                employeeId: formData.employeeId,
+                password: formData.password,
+                role: formData.role,
+            };
+
+            // Only add stationId and areaManagerId for Station Managers
+            if (formData.role === 'SM') {
+                if (formData.stationId) payload.stationId = formData.stationId;
+                if (formData.areaManagerId) payload.areaManagerId = formData.areaManagerId;
+            }
+
+            await api.post('/api/users', payload);
             setShowForm(false);
             setFormData({
                 name: '',
                 employeeId: '',
                 password: 'password123',
                 role: 'SM',
+                stationId: '',
+                areaManagerId: '',
             });
             loadUsers();
             alert('Employee created successfully');
@@ -91,7 +129,7 @@ export const Employees = () => {
                                 <select
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                                     value={formData.role}
-                                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, role: e.target.value, stationId: '', areaManagerId: '' })}
                                 >
                                     <option value="SM">Station Manager</option>
                                     <option value="AM">Area Manager</option>
@@ -108,6 +146,36 @@ export const Employees = () => {
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 />
                             </div>
+                            {formData.role === 'SM' && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Assign Station</label>
+                                        <select
+                                            className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                            value={formData.stationId}
+                                            onChange={(e) => setFormData({ ...formData, stationId: e.target.value })}
+                                        >
+                                            <option value="">Select Station (Optional)</option>
+                                            {stations.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Area Manager</label>
+                                        <select
+                                            className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                            value={formData.areaManagerId}
+                                            onChange={(e) => setFormData({ ...formData, areaManagerId: e.target.value })}
+                                        >
+                                            <option value="">Select Area Manager (Optional)</option>
+                                            {ams.map(am => (
+                                                <option key={am.id} value={am.id}>{am.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </>
+                            )}
                         </div>
                         <button
                             type="submit"
@@ -126,6 +194,8 @@ export const Employees = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee ID</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Station</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Area Manager</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -139,6 +209,12 @@ export const Employees = () => {
                                             user.role === 'AM' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
                                         {user.role}
                                     </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {user.station?.name || '-'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {user.areaManager?.name || '-'}
                                 </td>
                             </tr>
                         ))}

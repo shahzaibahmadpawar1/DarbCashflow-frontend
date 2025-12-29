@@ -5,19 +5,10 @@ interface Station {
     id: string;
     name: string;
     address: string;
-    areaManagerId?: string;
-    areaManager?: { name: string };
-}
-
-interface User {
-    id: string;
-    name: string;
-    role: string;
 }
 
 export const Stations = () => {
     const [stations, setStations] = useState<Station[]>([]);
-    const [ams, setAms] = useState<User[]>([]);
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -26,29 +17,14 @@ export const Stations = () => {
 
     useEffect(() => {
         loadStations();
-        loadAMs();
     }, []);
 
     const loadStations = async () => {
         try {
-            // Need to ensure backend returns areaManager relation. The controller uses findMany but no `with` clause for areaManager yet.
-            // I should update controller to include relations or just fetch them separately?
-            // Standard `getStations` didn't have relations. I should update it.
-            // For now, let's assume valid data.
             const res = await api.get('/api/stations');
             setStations(res.data.stations);
         } catch (error) {
             console.error('Failed to load stations', error);
-        }
-    };
-
-    const loadAMs = async () => {
-        try {
-            const res = await api.get('/api/users');
-            const allUsers: User[] = res.data.users;
-            setAms(allUsers.filter(u => u.role === 'AM'));
-        } catch (error) {
-            console.error('Failed to load AMs', error);
         }
     };
 
@@ -62,17 +38,6 @@ export const Stations = () => {
             alert('Station created successfully');
         } catch (error: any) {
             alert(error.response?.data?.error || 'Failed to create station');
-        }
-    };
-
-    const handleAssignAM = async (stationId: string, amId: string) => {
-        try {
-            await api.patch(`/api/stations/${stationId}`, {
-                areaManagerId: amId || null // Send null if empty string to unassign
-            });
-            loadStations();
-        } catch (error: any) {
-            alert(error.response?.data?.error || 'Failed to update station');
         }
     };
 
@@ -129,26 +94,13 @@ export const Stations = () => {
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Station Name</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Area Manager</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {stations.map((s) => (
                             <tr key={s.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{s.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{s.address}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <select
-                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-1"
-                                        value={s.areaManagerId || ''}
-                                        onChange={(e) => handleAssignAM(s.id, e.target.value)}
-                                    >
-                                        <option value="">Unassigned</option>
-                                        {ams.map(am => (
-                                            <option key={am.id} value={am.id}>{am.name}</option>
-                                        ))}
-                                    </select>
-                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{s.address || '-'}</td>
                             </tr>
                         ))}
                     </tbody>
