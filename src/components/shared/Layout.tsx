@@ -88,17 +88,6 @@ export const Layout = ({ children }: LayoutProps) => {
                     Stations
                   </Link>
                 )}
-                {isAdmin && (
-                  <Link
-                    to="/register"
-                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/register')
-                      ? 'border-white'
-                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
-                      }`}
-                  >
-                    Register User
-                  </Link>
-                )}
               </div>
             </div>
             <div className="flex items-center">

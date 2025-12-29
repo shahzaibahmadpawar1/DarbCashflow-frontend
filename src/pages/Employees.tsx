@@ -7,7 +7,7 @@ interface User {
     employeeId: string;
     role: 'Admin' | 'SM' | 'AM';
     station?: { name: string };
-    areaManager?: { name: string };
+    areaManager?: { id: string; name: string };
 }
 
 interface Station {
@@ -86,6 +86,11 @@ export const Employees = () => {
             alert(error.response?.data?.error || 'Failed to create user');
         }
     };
+
+    // Filter users by role
+    const admins = users.filter(u => u.role === 'Admin');
+    const areaManagers = users.filter(u => u.role === 'AM');
+    const stationManagers = users.filter(u => u.role === 'SM');
 
     return (
         <div className="px-4 py-6 sm:px-0">
@@ -187,7 +192,98 @@ export const Employees = () => {
                 </div>
             )}
 
+            {/* Admins Section */}
+            <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
+                <div className="bg-purple-50 px-6 py-3 border-b border-purple-200">
+                    <h2 className="text-lg font-semibold text-purple-900">Admins ({admins.length})</h2>
+                </div>
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {admins.length === 0 ? (
+                            <tr>
+                                <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">No admins found</td>
+                            </tr>
+                        ) : (
+                            admins.map((admin) => (
+                                <tr key={admin.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{admin.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{admin.employeeId}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                                            {admin.role}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Area Managers Section */}
+            <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
+                <div className="bg-blue-50 px-6 py-3 border-b border-blue-200">
+                    <h2 className="text-lg font-semibold text-blue-900">Area Managers ({areaManagers.length})</h2>
+                </div>
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Station Managers</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {areaManagers.length === 0 ? (
+                            <tr>
+                                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">No area managers found</td>
+                            </tr>
+                        ) : (
+                            areaManagers.map((am) => {
+                                const subordinates = stationManagers.filter(sm => sm.areaManager?.id === am.id);
+                                return (
+                                    <tr key={am.id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{am.name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{am.employeeId}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                {am.role}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                            {subordinates.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {subordinates.map(sm => (
+                                                        <span key={sm.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                            {sm.name}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">No station managers assigned</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Station Managers Section */}
             <div className="bg-white shadow rounded-lg overflow-hidden">
+                <div className="bg-green-50 px-6 py-3 border-b border-green-200">
+                    <h2 className="text-lg font-semibold text-green-900">Station Managers ({stationManagers.length})</h2>
+                </div>
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
@@ -199,25 +295,29 @@ export const Employees = () => {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {users.map((user) => (
-                            <tr key={user.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.employeeId}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${user.role === 'Admin' ? 'bg-purple-100 text-purple-800' :
-                                            user.role === 'AM' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
-                                        {user.role}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {user.station?.name || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {user.areaManager?.name || '-'}
-                                </td>
+                        {stationManagers.length === 0 ? (
+                            <tr>
+                                <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">No station managers found</td>
                             </tr>
-                        ))}
+                        ) : (
+                            stationManagers.map((sm) => (
+                                <tr key={sm.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sm.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sm.employeeId}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            {sm.role}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {sm.station?.name || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {sm.areaManager?.name || '-'}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
