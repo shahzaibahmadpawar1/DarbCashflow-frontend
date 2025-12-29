@@ -94,15 +94,6 @@ export const CashFlowDashboard = () => {
     }
   };
 
-  const handleTransfer = async (transactionId: string, toUserId: string) => {
-    try {
-      await api.post(`/api/cash/transactions/${transactionId}/transfer`, { toUserId });
-      loadTransactions();
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to initiate transfer');
-    }
-  };
-
   const handleAccept = async (transactionId: string) => {
     if (!confirm('Accept this cash transfer?')) return;
     try {
@@ -259,19 +250,6 @@ export const CashFlowDashboard = () => {
                   <StatusBadge status={tx.status} />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  {tx.status === 'PENDING_ACCEPTANCE' && isSM && (
-                    <button
-                      onClick={() => {
-                        // Default to a mock AM ID if user doesn't input one, for easier testing without real users
-                        const defaultAMId = 'mock-am-id';
-                        const toUserId = prompt('Enter Area Manager User ID:', defaultAMId);
-                        if (toUserId) handleTransfer(tx.id, toUserId);
-                      }}
-                      className="text-primary-600 hover:text-primary-900"
-                    >
-                      Transfer to AM
-                    </button>
-                  )}
                   {tx.status === 'PENDING_ACCEPTANCE' && isAM && (
                     <button
                       onClick={() => handleAccept(tx.id)}
