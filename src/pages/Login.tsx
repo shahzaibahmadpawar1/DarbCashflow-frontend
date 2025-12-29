@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export const Login = () => {
-  const [employeeId, setEmployeeId] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export const Login = () => {
     setLoading(true);
 
     try {
-      await login(employeeId, password);
+      await login(username, password);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Invalid credentials');
@@ -44,19 +44,19 @@ export const Login = () => {
             )}
 
             <div>
-              <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700 mb-2">
-                Employee ID
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                Username
               </label>
               <input
-                id="employeeId"
-                name="employeeId"
+                id="username"
+                name="username"
                 type="text"
                 autoComplete="username"
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Enter your employee ID"
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
 

@@ -32,8 +32,8 @@ export const useAuth = () => {
     setLoading(false);
   }, []);
 
-  const login = async (employeeId: string, password: string) => {
-    const response = await api.post('/api/auth/login', { employeeId, password });
+  const login = async (name: string, password: string) => {
+    const response = await api.post('/api/auth/login', { name, password });
     const { token, user } = response.data;
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
