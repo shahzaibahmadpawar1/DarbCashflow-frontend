@@ -267,11 +267,17 @@ export const InventoryDashboard = () => {
                           sale.quantityLiters.toFixed(2)
                         ) : (
                           <input
-                            type="number"
-                            step="0.01"
+                            type="text"
                             value={sale.quantityLiters}
-                            onChange={(e) => handleQuantityChange(sale.id, e.target.value)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              // Allow only numbers and decimal point
+                              if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                                handleQuantityChange(sale.id, value);
+                              }
+                            }}
                             className="w-32 px-2 py-1 border border-gray-300 rounded"
+                            placeholder="0.00"
                           />
                         )}
                       </td>
