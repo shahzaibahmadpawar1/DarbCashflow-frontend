@@ -252,8 +252,6 @@ export const InventoryDashboard = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price/L</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity (L)</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Card Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cash Amount</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -277,41 +275,15 @@ export const InventoryDashboard = () => {
                           />
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap font-bold text-primary-600">
+                      <td className="px-6 py-4 whitespace-nowrap font-bold text-orange-600">
                         {totalAmount.toFixed(2)} SAR
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {currentShift.locked ? (
-                          sale.cardAmount.toFixed(2)
-                        ) : (
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={sale.cardAmount}
-                            onChange={(e) => handlePaymentChange(sale.id, 'cardAmount', e.target.value)}
-                            className="w-32 px-2 py-1 border border-gray-300 rounded"
-                          />
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {currentShift.locked ? (
-                          sale.cashAmount.toFixed(2)
-                        ) : (
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={sale.cashAmount}
-                            onChange={(e) => handlePaymentChange(sale.id, 'cashAmount', e.target.value)}
-                            className="w-32 px-2 py-1 border border-gray-300 rounded"
-                          />
-                        )}
                       </td>
                     </tr>
                   );
                 })}
                 {nozzleSales.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                       No nozzle sales data. Please run the setup SQL scripts and refresh the page.
                     </td>
                   </tr>
@@ -319,6 +291,60 @@ export const InventoryDashboard = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Summary Section - Total with Card/Cash Split */}
+          {nozzleSales.length > 0 && (
+            <div className="mt-6 bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4">Payment Summary</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Total Amount */}
+                <div className="bg-white rounded-lg p-4 border-2 border-orange-500">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Total Amount</label>
+                  <div className="text-3xl font-bold text-orange-600">
+                    {nozzleSales.reduce((sum, sale) => sum + (sale.quantityLiters * sale.pricePerLiter), 0).toFixed(2)} SAR
+                  </div>
+                </div>
+
+                {/* Card Amount */}
+                <div className="bg-white rounded-lg p-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Card Amount (SAR)</label>
+                  {currentShift.locked ? (
+                    <div className="text-2xl font-semibold text-gray-900">
+                      {nozzleSales.reduce((sum, sale) => sum + (sale.cardAmount || 0), 0).toFixed(2)}
+                    </div>
+                  ) : (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={nozzleSales[0]?.cardAmount || 0}
+                      onChange={(e) => handlePaymentChange(nozzleSales[0].id, 'cardAmount', e.target.value)}
+                      className="w-full px-4 py-3 text-xl border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                      placeholder="0.00"
+                    />
+                  )}
+                </div>
+
+                {/* Cash Amount */}
+                <div className="bg-white rounded-lg p-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Cash Amount (SAR)</label>
+                  {currentShift.locked ? (
+                    <div className="text-2xl font-semibold text-gray-900">
+                      {nozzleSales.reduce((sum, sale) => sum + (sale.cashAmount || 0), 0).toFixed(2)}
+                    </div>
+                  ) : (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={nozzleSales[0]?.cashAmount || 0}
+                      onChange={(e) => handlePaymentChange(nozzleSales[0].id, 'cashAmount', e.target.value)}
+                      className="w-full px-4 py-3 text-xl border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                      placeholder="0.00"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           {!currentShift.locked && canManageStation && (
