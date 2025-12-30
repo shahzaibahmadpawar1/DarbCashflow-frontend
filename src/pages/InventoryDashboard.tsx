@@ -48,6 +48,7 @@ interface TankerDelivery {
   tankId: string;
   litersDelivered: number;
   deliveryDate: string;
+  aramcoTicket: string | null;
   notes: string | null;
   deliveredBy: {
     name: string;
@@ -74,6 +75,7 @@ export const InventoryDashboard = () => {
     tankId: '',
     litersDelivered: '',
     deliveryDate: new Date().toISOString().slice(0, 16),
+    aramcoTicket: '',
     notes: ''
   });
   const [deliveries, setDeliveries] = useState<TankerDelivery[]>([]);
@@ -208,12 +210,19 @@ export const InventoryDashboard = () => {
       await api.post(`/api/inventory/tanks/${deliveryData.tankId}/deliveries`, {
         litersDelivered: parseFloat(deliveryData.litersDelivered),
         deliveryDate: new Date(deliveryData.deliveryDate).toISOString(),
+        aramcoTicket: deliveryData.aramcoTicket || undefined,
         notes: deliveryData.notes || undefined,
       });
 
       alert('Tanker delivery recorded successfully!');
       setShowDeliveryForm(false);
-      setDeliveryData({ tankId: '', litersDelivered: '', deliveryDate: new Date().toISOString().slice(0, 16), notes: '' });
+      setDeliveryData({
+        tankId: '',
+        litersDelivered: '',
+        deliveryDate: new Date().toISOString().slice(0, 16),
+        aramcoTicket: '',
+        notes: ''
+      });
       if (stationId) {
         loadData(stationId);
       }
@@ -529,6 +538,16 @@ export const InventoryDashboard = () => {
                 />
               </div>
               <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Aramco Ticket Number</label>
+                <input
+                  type="text"
+                  value={deliveryData.aramcoTicket}
+                  onChange={(e) => setDeliveryData({ ...deliveryData, aramcoTicket: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="Enter Aramco ticket number"
+                />
+              </div>
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
                 <textarea
                   value={deliveryData.notes}
@@ -578,6 +597,7 @@ export const InventoryDashboard = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tank</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Liters</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Delivered By</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aramco Ticket</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                   </tr>
                 </thead>
@@ -595,6 +615,9 @@ export const InventoryDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {delivery.deliveredBy.name} ({delivery.deliveredBy.employeeId})
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {delivery.aramcoTicket || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {delivery.notes || '-'}
