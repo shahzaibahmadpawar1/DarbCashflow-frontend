@@ -94,36 +94,48 @@ export const InventoryDashboard = () => {
     }
   };
 
-  const handleQuantityChange = async (saleId: string, quantity: string) => {
-    try {
-      await api.put(`/api/fuel/sales/${saleId}`, {
-        quantityLiters: parseFloat(quantity) || 0,
-      });
+  const handleQuantityChange = (saleId: string, quantity: string) => {
+    // Update local state immediately for responsive input
+    setNozzleSales(prev => prev.map(sale =>
+      sale.id === saleId
+        ? { ...sale, quantityLiters: parseFloat(quantity) || 0 }
+        : sale
+    ));
 
-      // Reload sales
-      if (currentShift) {
-        const salesRes = await api.get(`/api/fuel/sales/shift/${currentShift.id}`);
-        setNozzleSales(salesRes.data.sales);
+    // Debounce API call
+    const timeoutId = setTimeout(async () => {
+      try {
+        await api.put(`/api/fuel/sales/${saleId}`, {
+          quantityLiters: parseFloat(quantity) || 0,
+        });
+      } catch (error: any) {
+        console.error('Failed to update quantity:', error);
       }
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to update quantity');
-    }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
   };
 
-  const handlePaymentChange = async (saleId: string, field: 'cardAmount' | 'cashAmount', value: string) => {
-    try {
-      await api.put(`/api/fuel/sales/${saleId}`, {
-        [field]: parseFloat(value) || 0,
-      });
+  const handlePaymentChange = (saleId: string, field: 'cardAmount' | 'cashAmount', value: string) => {
+    // Update local state immediately
+    setNozzleSales(prev => prev.map(sale =>
+      sale.id === saleId
+        ? { ...sale, [field]: parseFloat(value) || 0 }
+        : sale
+    ));
 
-      // Reload sales
-      if (currentShift) {
-        const salesRes = await api.get(`/api/fuel/sales/shift/${currentShift.id}`);
-        setNozzleSales(salesRes.data.sales);
+    // Debounce API call
+    const timeoutId = setTimeout(async () => {
+      try {
+        await api.put(`/api/fuel/sales/${saleId}`, {
+          [field]: parseFloat(value) || 0,
+        });
+      } catch (error: any) {
+        console.error('Failed to update payment:', error);
       }
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to update payment');
-    }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
   };
 
   const handleSubmitSales = async () => {
@@ -268,15 +280,15 @@ export const InventoryDashboard = () => {
                         ) : (
                           <input
                             type="text"
-                            value={sale.quantityLiters}
+                            value={sale.quantityLiters === 0 ? '' : String(sale.quantityLiters)}
                             onChange={(e) => {
                               const value = e.target.value;
                               // Allow only numbers and decimal point
                               if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                                handleQuantityChange(sale.id, value);
+                                handleQuantityChange(sale.id, value || '0');
                               }
                             }}
-                            className="w-32 px-2 py-1 border border-gray-300 rounded"
+                            className="w-32 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="0.00"
                           />
                         )}
@@ -320,10 +332,14 @@ export const InventoryDashboard = () => {
                     </div>
                   ) : (
                     <input
-                      type="number"
-                      step="0.01"
-                      value={nozzleSales[0]?.cardAmount || 0}
-                      onChange={(e) => handlePaymentChange(nozzleSales[0].id, 'cardAmount', e.target.value)}
+                      type="text"
+                      value={nozzleSales[0]?.cardAmount === 0 ? '' : String(nozzleSales[0]?.cardAmount || '')}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                          handlePaymentChange(nozzleSales[0].id, 'cardAmount', value || '0');
+                        }
+                      }}
                       className="w-full px-4 py-3 text-xl border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
                       placeholder="0.00"
                     />
@@ -339,10 +355,14 @@ export const InventoryDashboard = () => {
                     </div>
                   ) : (
                     <input
-                      type="number"
-                      step="0.01"
-                      value={nozzleSales[0]?.cashAmount || 0}
-                      onChange={(e) => handlePaymentChange(nozzleSales[0].id, 'cashAmount', e.target.value)}
+                      type="text"
+                      value={nozzleSales[0]?.cashAmount === 0 ? '' : String(nozzleSales[0]?.cashAmount || '')}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                          handlePaymentChange(nozzleSales[0].id, 'cashAmount', value || '0');
+                        }
+                      }}
                       className="w-full px-4 py-3 text-xl border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
                       placeholder="0.00"
                     />
