@@ -69,16 +69,26 @@ export const InventoryDashboard = () => {
         api.get(`/api/fuel/prices/station/${sid}`),
       ]);
 
+      console.log('Shift data:', shiftRes.data);
+      console.log('Prices data:', pricesRes.data);
+
       setCurrentShift(shiftRes.data.shift);
-      setFuelPrices(pricesRes.data.prices);
+      setFuelPrices(pricesRes.data.prices || []);
 
       // Load nozzle sales if shift exists
       if (shiftRes.data.shift) {
-        const salesRes = await api.get(`/api/fuel/sales/shift/${shiftRes.data.shift.id}`);
-        setNozzleSales(salesRes.data.sales);
+        try {
+          const salesRes = await api.get(`/api/fuel/sales/shift/${shiftRes.data.shift.id}`);
+          console.log('Sales data:', salesRes.data);
+          setNozzleSales(salesRes.data.sales || []);
+        } catch (salesError) {
+          console.error('Failed to load sales:', salesError);
+          setNozzleSales([]);
+        }
       }
-    } catch (error) {
-      console.error('Failed to load data', error);
+    } catch (error: any) {
+      console.error('Failed to load data:', error);
+      alert('Failed to load inventory data. Please check console for details.');
     } finally {
       setLoading(false);
     }
@@ -225,8 +235,8 @@ export const InventoryDashboard = () => {
               Current Shift: {currentShift.shiftType}
             </h2>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${currentShift.locked
-                ? 'bg-red-100 text-red-800'
-                : 'bg-green-100 text-green-800'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-green-100 text-green-800'
               }`}>
               {currentShift.locked ? 'Locked' : 'Open'}
             </span>
@@ -299,6 +309,13 @@ export const InventoryDashboard = () => {
                     </tr>
                   );
                 })}
+                {nozzleSales.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                      No nozzle sales data. Please run the setup SQL scripts and refresh the page.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
