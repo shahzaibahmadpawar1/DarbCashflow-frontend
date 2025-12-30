@@ -501,20 +501,29 @@ export const InventoryDashboard = () => {
             <h3 className="text-lg font-semibold mb-4">Record Tanker Delivery</h3>
             <form onSubmit={handleDeliverySubmit}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tank</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Fuel Type</label>
                 <select
                   value={deliveryData.tankId}
                   onChange={(e) => setDeliveryData({ ...deliveryData, tankId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   required
                 >
-                  <option value="">Select Tank</option>
-                  {tanks.map((tank) => (
-                    <option key={tank.id} value={tank.id}>
-                      {getFuelTypeLabel(tank.fuelType)}
-                    </option>
-                  ))}
+                  <option value="">Select Fuel Type</option>
+                  {tanks.length === 0 ? (
+                    <option disabled>No tanks available - Contact admin to create tanks</option>
+                  ) : (
+                    tanks.map((tank) => (
+                      <option key={tank.id} value={tank.id}>
+                        {getFuelTypeLabel(tank.fuelType)} - Current: {tank.currentLevel.toFixed(0)}L
+                      </option>
+                    ))
+                  )}
                 </select>
+                {tanks.length === 0 && (
+                  <p className="mt-1 text-sm text-red-600">
+                    No fuel tanks found for this station. Please contact an administrator to set up tanks.
+                  </p>
+                )}
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Liters Delivered</label>
