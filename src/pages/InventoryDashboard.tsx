@@ -6,32 +6,21 @@ import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 interface Nozzle {
   id: string;
   name: string;
-  tankId: string;
   fuelType: string;
-  meterLimit: number;
   tank: {
     id: string;
     fuelType: string;
     currentLevel: number;
-    capacity: number | null;
   };
 }
 
-interface Tank {
-  id: string;
-  fuelType: string;
-  capacity: number | null;
-  currentLevel: number;
-}
-
-interface NozzleReading {
+interface NozzleSale {
   id: string;
   nozzleId: string;
-  openingReading: number;
-  closingReading: number | null;
-  consumption: number | null;
-  isRollover: boolean;
-  pricePerLiter: number | null;
+  quantityLiters: number;
+  pricePerLiter: number;
+  cardAmount: number;
+  cashAmount: number;
   nozzle: Nozzle;
 }
 
@@ -40,49 +29,29 @@ interface Shift {
   shiftType: string;
   status: string;
   locked: boolean;
-  nozzleReadings: NozzleReading[];
 }
 
-interface TankerDelivery {
+interface FuelPrice {
   id: string;
-  tankId: string;
-  litersDelivered: number;
-  deliveryDate: string;
-  aramcoTicket: string | null;
-  notes: string | null;
-  deliveredBy: {
-    name: string;
-    employeeId: string;
-  };
-  tank: {
-    fuelType: string;
-  };
+  fuelType: string;
+  pricePerLiter: number;
 }
 
 export const InventoryDashboard = () => {
   const { user, canManageStation, isAdmin } = useAuth();
   const [stationId, setStationId] = useState<string>('');
-  const [tanks, setTanks] = useState<Tank[]>([]);
   const [currentShift, setCurrentShift] = useState<Shift | null>(null);
-  const [closingReadings, setClosingReadings] = useState<Record<string, { value: number; isRollover: boolean }>>({});
-  const [pricePerLiter, setPricePerLiter] = useState<number>(0);
+  const [nozzleSales, setNozzleSales] = useState<NozzleSale[]>([]);
+  const [fuelPrices, setFuelPrices] = useState<FuelPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Tanker delivery state
-  const [showDeliveryForm, setShowDeliveryForm] = useState(false);
-  const [deliveryData, setDeliveryData] = useState({
-    tankId: '',
-    litersDelivered: '',
-    deliveryDate: new Date().toISOString().slice(0, 16),
-    aramcoTicket: '',
-    notes: ''
+  // Admin price management
+  const [showPriceForm, setShowPriceForm] = useState(false);
+  const [priceFormData, setPriceFormData] = useState({
+    fuelType: '91_GASOLINE',
+    pricePerLiter: '',
   });
-  const [deliveries, setDeliveries] = useState<TankerDelivery[]>([]);
-  const [showDeliveries, setShowDeliveries] = useState(false);
-
-  // Rollover confirmation
-  const [rolloverConfirm, setRolloverConfirm] = useState<{ nozzleId: string; nozzleName: string } | null>(null);
 
   useEffect(() => {
     if (user?.stationId) {
@@ -95,28 +64,19 @@ export const InventoryDashboard = () => {
 
   const loadData = async (sid: string) => {
     try {
-      const [tanksRes, shiftRes] = await Promise.all([
-        api.get(`/api/inventory/stations/${sid}/tanks`),
+      const [shiftRes, pricesRes] = await Promise.all([
         api.get(`/api/inventory/shifts/stations/${sid}/current`),
+        api.get(`/api/fuel/prices/station/${sid}`),
       ]);
 
-      setTanks(tanksRes.data.tanks);
       setCurrentShift(shiftRes.data.shift);
+      setFuelPrices(pricesRes.data.prices);
 
-      // Initialize closing readings from existing shift readings
-      const readingsMap: Record<string, { value: number; isRollover: boolean }> = {};
-      shiftRes.data.shift.nozzleReadings.forEach((sr: NozzleReading) => {
-        if (sr.closingReading !== null) {
-          readingsMap[sr.nozzleId] = {
-            value: sr.closingReading,
-            isRollover: sr.isRollover
-          };
-        }
-        if (sr.pricePerLiter && !pricePerLiter) {
-          setPricePerLiter(sr.pricePerLiter);
-        }
-      });
-      setClosingReadings(readingsMap);
+      // Load nozzle sales if shift exists
+      if (shiftRes.data.shift) {
+        const salesRes = await api.get(`/api/fuel/sales/shift/${shiftRes.data.shift.id}`);
+        setNozzleSales(salesRes.data.sales);
+      }
     } catch (error) {
       console.error('Failed to load data', error);
     } finally {
@@ -124,130 +84,78 @@ export const InventoryDashboard = () => {
     }
   };
 
-  const loadDeliveries = async () => {
+  const handleQuantityChange = async (saleId: string, quantity: string) => {
     try {
-      const res = await api.get('/api/inventory/deliveries');
-      setDeliveries(res.data.deliveries);
-      setShowDeliveries(true);
-    } catch (error) {
-      console.error('Failed to load deliveries', error);
-    }
-  };
-
-  const handleReadingChange = (nozzleId: string, value: string) => {
-    const numValue = parseFloat(value) || 0;
-    const reading = currentShift?.nozzleReadings.find(r => r.nozzleId === nozzleId);
-
-    if (reading && numValue < reading.openingReading) {
-      // Potential rollover - ask user
-      setRolloverConfirm({ nozzleId, nozzleName: reading.nozzle.name });
-    }
-
-    setClosingReadings({
-      ...closingReadings,
-      [nozzleId]: {
-        value: numValue,
-        isRollover: closingReadings[nozzleId]?.isRollover || false
-      }
-    });
-  };
-
-  const handleRolloverConfirm = (confirmed: boolean) => {
-    if (rolloverConfirm) {
-      setClosingReadings({
-        ...closingReadings,
-        [rolloverConfirm.nozzleId]: {
-          ...closingReadings[rolloverConfirm.nozzleId],
-          isRollover: confirmed,
-        }
-      });
-    }
-    setRolloverConfirm(null);
-  };
-
-  const toggleRollover = (nozzleId: string) => {
-    setClosingReadings({
-      ...closingReadings,
-      [nozzleId]: {
-        ...closingReadings[nozzleId],
-        isRollover: !closingReadings[nozzleId]?.isRollover,
-      }
-    });
-  };
-
-  const handleSubmitReadings = async () => {
-    if (!pricePerLiter || pricePerLiter <= 0) {
-      alert('Please enter a valid price per liter');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const readingsArray = Object.entries(closingReadings).map(([nozzleId, data]) => ({
-        nozzleId,
-        closingReading: data.value,
-        isRollover: data.isRollover,
-      }));
-
-      await api.post(`/api/inventory/shifts/${currentShift?.id}/readings`, {
-        readings: readingsArray,
+      await api.put(`/api/fuel/sales/${saleId}`, {
+        quantityLiters: parseFloat(quantity) || 0,
       });
 
-      alert('Readings submitted successfully! Shift has been locked.');
-      if (stationId) {
-        loadData(stationId);
+      // Reload sales
+      if (currentShift) {
+        const salesRes = await api.get(`/api/fuel/sales/shift/${currentShift.id}`);
+        setNozzleSales(salesRes.data.sales);
       }
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to submit readings');
-    } finally {
-      setSubmitting(false);
+      alert(error.response?.data?.error || 'Failed to update quantity');
     }
   };
 
-  const handleDeliverySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePaymentChange = async (saleId: string, field: 'cardAmount' | 'cashAmount', value: string) => {
     try {
-      await api.post(`/api/inventory/tanks/${deliveryData.tankId}/deliveries`, {
-        litersDelivered: parseFloat(deliveryData.litersDelivered),
-        deliveryDate: new Date(deliveryData.deliveryDate).toISOString(),
-        aramcoTicket: deliveryData.aramcoTicket || undefined,
-        notes: deliveryData.notes || undefined,
+      await api.put(`/api/fuel/sales/${saleId}`, {
+        [field]: parseFloat(value) || 0,
       });
 
-      alert('Tanker delivery recorded successfully!');
-      setShowDeliveryForm(false);
-      setDeliveryData({
-        tankId: '',
-        litersDelivered: '',
-        deliveryDate: new Date().toISOString().slice(0, 16),
-        aramcoTicket: '',
-        notes: ''
-      });
-      if (stationId) {
-        loadData(stationId);
+      // Reload sales
+      if (currentShift) {
+        const salesRes = await api.get(`/api/fuel/sales/shift/${currentShift.id}`);
+        setNozzleSales(salesRes.data.sales);
       }
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to record delivery');
+      alert(error.response?.data?.error || 'Failed to update payment');
     }
   };
 
-  const handleUnlockShift = async () => {
+  const handleSubmitSales = async () => {
     if (!currentShift) return;
 
     const confirmed = window.confirm(
-      'Are you sure you want to unlock this shift? This will allow Station Managers to edit the readings again.'
+      'Are you sure you want to submit sales and lock this shift? This action cannot be undone.'
     );
 
     if (!confirmed) return;
 
     try {
-      await api.post(`/api/inventory/shifts/${currentShift.id}/unlock`);
-      alert('Shift unlocked successfully!');
+      setSubmitting(true);
+      await api.post(`/api/fuel/sales/shift/${currentShift.id}/submit`);
+      alert('Sales submitted successfully! Shift has been locked.');
       if (stationId) {
         loadData(stationId);
       }
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to unlock shift');
+      alert(error.response?.data?.error || 'Failed to submit sales');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSetPrice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/api/fuel/prices', {
+        stationId,
+        fuelType: priceFormData.fuelType,
+        pricePerLiter: parseFloat(priceFormData.pricePerLiter),
+      });
+
+      alert('Fuel price set successfully!');
+      setShowPriceForm(false);
+      setPriceFormData({ fuelType: '91_GASOLINE', pricePerLiter: '' });
+      if (stationId) {
+        loadData(stationId);
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to set price');
     }
   };
 
@@ -260,13 +168,8 @@ export const InventoryDashboard = () => {
     }
   };
 
-  const getTankColor = (fuelType: string) => {
-    switch (fuelType) {
-      case '91_GASOLINE': return 'bg-blue-500';
-      case '95_GASOLINE': return 'bg-green-500';
-      case 'DIESEL': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
-    }
+  const calculateTotal = (quantity: number, price: number) => {
+    return (quantity * price).toFixed(2);
   };
 
   if (loading) {
@@ -280,7 +183,6 @@ export const InventoryDashboard = () => {
           <h2 className="text-xl font-semibold text-yellow-900 mb-2">No Station Assigned</h2>
           <p className="text-yellow-700">
             You need to be assigned to a station to access the inventory dashboard.
-            Please contact your administrator.
           </p>
         </div>
       </div>
@@ -291,56 +193,27 @@ export const InventoryDashboard = () => {
     <div className="px-4 py-6 sm:px-0">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Inventory Dashboard</h1>
-        <div className="flex gap-2">
+        <h1 className="text-3xl font-bold text-gray-900">Fuel Sales Dashboard</h1>
+        {isAdmin && (
           <button
-            onClick={loadDeliveries}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            onClick={() => setShowPriceForm(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            View Deliveries
+            Set Fuel Prices
           </button>
-          {canManageStation && (
-            <button
-              onClick={() => setShowDeliveryForm(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              + Record Tanker Delivery
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Tank Overview */}
+      {/* Current Prices */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Tank Levels</h2>
+        <h2 className="text-xl font-semibold mb-4">Current Fuel Prices</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {tanks.map((tank) => {
-            const percentage = tank.capacity ? (tank.currentLevel / tank.capacity) * 100 : 0;
-            return (
-              <div key={tank.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">{getFuelTypeLabel(tank.fuelType)}</h3>
-                  <span className={`w-4 h-4 rounded-full ${getTankColor(tank.fuelType)}`}></span>
-                </div>
-                <div className="text-2xl font-bold text-gray-900 mb-1">
-                  {tank.currentLevel.toFixed(2)} L
-                </div>
-                {tank.capacity && (
-                  <>
-                    <div className="text-sm text-gray-600 mb-2">
-                      of {tank.capacity.toFixed(2)} L ({percentage.toFixed(1)}%)
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${getTankColor(tank.fuelType)}`}
-                        style={{ width: `${Math.min(percentage, 100)}%` }}
-                      ></div>
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
+          {fuelPrices.map((price) => (
+            <div key={price.id} className="border rounded-lg p-4">
+              <h3 className="font-semibold text-gray-700">{getFuelTypeLabel(price.fuelType)}</h3>
+              <p className="text-2xl font-bold text-primary-600">{price.pricePerLiter.toFixed(2)} SAR/L</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -351,98 +224,76 @@ export const InventoryDashboard = () => {
             <h2 className="text-xl font-semibold">
               Current Shift: {currentShift.shiftType}
             </h2>
-            <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${currentShift.locked
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${currentShift.locked
                 ? 'bg-red-100 text-red-800'
                 : 'bg-green-100 text-green-800'
-                }`}>
-                {currentShift.locked ? 'Locked' : 'Open'}
-              </span>
-              {currentShift.locked && isAdmin && (
-                <button
-                  onClick={handleUnlockShift}
-                  className="px-4 py-2 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700"
-                >
-                  🔓 Unlock Shift
-                </button>
-              )}
-            </div>
+              }`}>
+              {currentShift.locked ? 'Locked' : 'Open'}
+            </span>
           </div>
 
-          {/* Price Per Liter Input */}
-          {!currentShift.locked && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price Per Liter (for this shift)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={pricePerLiter}
-                onChange={(e) => setPricePerLiter(parseFloat(e.target.value) || 0)}
-                className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                placeholder="Enter price per liter"
-              />
-            </div>
-          )}
-
-          {/* Nozzle Readings Table */}
+          {/* Nozzle Sales Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nozzle</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fuel Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Opening</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Closing</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Consumption</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rollover</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price/L</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity (L)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Card Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cash Amount</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {currentShift.nozzleReadings.map((reading) => {
-                  const closingValue = closingReadings[reading.nozzleId]?.value || reading.closingReading || 0;
-                  const isRollover = closingReadings[reading.nozzleId]?.isRollover || reading.isRollover;
-                  const consumption = reading.consumption ||
-                    (closingValue && closingValue >= reading.openingReading
-                      ? closingValue - reading.openingReading
-                      : 0);
-
+                {nozzleSales.map((sale) => {
+                  const totalAmount = parseFloat(calculateTotal(sale.quantityLiters, sale.pricePerLiter));
                   return (
-                    <tr key={reading.id}>
-                      <td className="px-6 py-4 whitespace-nowrap font-medium">{reading.nozzle.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{getFuelTypeLabel(reading.nozzle.fuelType)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{reading.openingReading.toFixed(2)}</td>
+                    <tr key={sale.id}>
+                      <td className="px-6 py-4 whitespace-nowrap font-medium">{sale.nozzle.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{getFuelTypeLabel(sale.nozzle.fuelType)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{sale.pricePerLiter.toFixed(2)}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {currentShift.locked ? (
-                          reading.closingReading?.toFixed(2) || '-'
+                          sale.quantityLiters.toFixed(2)
                         ) : (
                           <input
                             type="number"
                             step="0.01"
-                            value={closingReadings[reading.nozzleId]?.value || ''}
-                            onChange={(e) => handleReadingChange(reading.nozzleId, e.target.value)}
+                            value={sale.quantityLiters}
+                            onChange={(e) => handleQuantityChange(sale.id, e.target.value)}
                             className="w-32 px-2 py-1 border border-gray-300 rounded"
-                            placeholder="Enter reading"
+                          />
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap font-bold text-primary-600">
+                        {totalAmount.toFixed(2)} SAR
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {currentShift.locked ? (
+                          sale.cardAmount.toFixed(2)
+                        ) : (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={sale.cardAmount}
+                            onChange={(e) => handlePaymentChange(sale.id, 'cardAmount', e.target.value)}
+                            className="w-32 px-2 py-1 border border-gray-300 rounded"
                           />
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {consumption > 0 ? `${consumption.toFixed(2)} L` : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         {currentShift.locked ? (
-                          isRollover ? <span className="text-orange-600 font-medium">Yes</span> : 'No'
+                          sale.cashAmount.toFixed(2)
                         ) : (
-                          <button
-                            onClick={() => toggleRollover(reading.nozzleId)}
-                            className={`px-3 py-1 rounded text-sm ${isRollover
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-gray-100 text-gray-600'
-                              }`}
-                          >
-                            {isRollover ? 'Yes' : 'No'}
-                          </button>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={sale.cashAmount}
+                            onChange={(e) => handlePaymentChange(sale.id, 'cashAmount', e.target.value)}
+                            className="w-32 px-2 py-1 border border-gray-300 rounded"
+                          />
                         )}
                       </td>
                     </tr>
@@ -456,186 +307,63 @@ export const InventoryDashboard = () => {
           {!currentShift.locked && canManageStation && (
             <div className="mt-6">
               <button
-                onClick={handleSubmitReadings}
-                disabled={submitting || Object.keys(closingReadings).length === 0}
+                onClick={handleSubmitSales}
+                disabled={submitting}
                 className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Submitting...' : 'Submit Closing Readings & Lock Shift'}
+                {submitting ? 'Submitting...' : 'Submit Sales & Lock Shift'}
               </button>
             </div>
           )}
         </div>
       )}
 
-      {/* Rollover Confirmation Modal */}
-      {rolloverConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Meter Rollover Detected</h3>
-            <p className="text-gray-700 mb-6">
-              The closing reading for <strong>{rolloverConfirm.nozzleName}</strong> is less than the opening reading.
-              Did the meter roll over?
-            </p>
-            <div className="flex gap-4">
-              <button
-                onClick={() => handleRolloverConfirm(true)}
-                className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-              >
-                Yes, Rollover
-              </button>
-              <button
-                onClick={() => handleRolloverConfirm(false)}
-                className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-              >
-                No, I Made a Mistake
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tanker Delivery Form Modal */}
-      {showDeliveryForm && (
+      {/* Price Form Modal */}
+      {showPriceForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Record Tanker Delivery</h3>
-            <form onSubmit={handleDeliverySubmit}>
+            <h3 className="text-lg font-semibold mb-4">Set Fuel Price</h3>
+            <form onSubmit={handleSetPrice}>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Fuel Type</label>
                 <select
-                  value={deliveryData.tankId}
-                  onChange={(e) => setDeliveryData({ ...deliveryData, tankId: e.target.value })}
+                  value={priceFormData.fuelType}
+                  onChange={(e) => setPriceFormData({ ...priceFormData, fuelType: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   required
                 >
-                  <option value="">Select Fuel Type</option>
-                  {tanks.length === 0 ? (
-                    <option disabled>No tanks available - Contact admin to create tanks</option>
-                  ) : (
-                    tanks.map((tank) => (
-                      <option key={tank.id} value={tank.id}>
-                        {getFuelTypeLabel(tank.fuelType)} - Current: {tank.currentLevel.toFixed(0)}L
-                      </option>
-                    ))
-                  )}
+                  <option value="91_GASOLINE">91 Gasoline</option>
+                  <option value="95_GASOLINE">95 Gasoline</option>
+                  <option value="DIESEL">Diesel</option>
                 </select>
-                {tanks.length === 0 && (
-                  <p className="mt-1 text-sm text-red-600">
-                    No fuel tanks found for this station. Please contact an administrator to set up tanks.
-                  </p>
-                )}
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Liters Delivered</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Price Per Liter (SAR)</label>
                 <input
                   type="number"
                   step="0.01"
-                  value={deliveryData.litersDelivered}
-                  onChange={(e) => setDeliveryData({ ...deliveryData, litersDelivered: e.target.value })}
+                  value={priceFormData.pricePerLiter}
+                  onChange={(e) => setPriceFormData({ ...priceFormData, pricePerLiter: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={deliveryData.deliveryDate}
-                  onChange={(e) => setDeliveryData({ ...deliveryData, deliveryDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Aramco Ticket Number</label>
-                <input
-                  type="text"
-                  value={deliveryData.aramcoTicket}
-                  onChange={(e) => setDeliveryData({ ...deliveryData, aramcoTicket: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  placeholder="Enter Aramco ticket number"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
-                <textarea
-                  value={deliveryData.notes}
-                  onChange={(e) => setDeliveryData({ ...deliveryData, notes: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  rows={3}
                 />
               </div>
               <div className="flex gap-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  Record Delivery
+                  Set Price
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowDeliveryForm(false)}
+                  onClick={() => setShowPriceForm(false)}
                   className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
                 >
                   Cancel
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Deliveries List Modal */}
-      {showDeliveries && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Tanker Delivery History</h3>
-              <button
-                onClick={() => setShowDeliveries(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tank</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Liters</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Delivered By</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aramco Ticket</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {deliveries.map((delivery) => (
-                    <tr key={delivery.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {new Date(delivery.deliveryDate).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getFuelTypeLabel(delivery.tank.fuelType)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap font-medium">
-                        {delivery.litersDelivered.toFixed(2)} L
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {delivery.deliveredBy.name} ({delivery.deliveredBy.employeeId})
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {delivery.aramcoTicket || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        {delivery.notes || '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
         </div>
       )}
