@@ -31,6 +31,9 @@ export const Stations = () => {
         { fuelType: 'DIESEL', pricePerLiter: '' },
     ]);
 
+    // Store prices for all stations
+    const [stationPrices, setStationPrices] = useState<Record<string, any[]>>({});
+
     useEffect(() => {
         loadStations();
     }, []);
@@ -39,6 +42,18 @@ export const Stations = () => {
         try {
             const res = await api.get('/api/stations');
             setStations(res.data.stations);
+
+            // Load prices for each station
+            const pricesMap: Record<string, any[]> = {};
+            for (const station of res.data.stations) {
+                try {
+                    const pricesRes = await api.get(`/api/fuel/prices/station/${station.id}`);
+                    pricesMap[station.id] = pricesRes.data.prices || [];
+                } catch (error) {
+                    pricesMap[station.id] = [];
+                }
+            }
+            setStationPrices(pricesMap);
         } catch (error) {
             console.error('Failed to load stations', error);
         }
@@ -159,28 +174,46 @@ export const Stations = () => {
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Station Name</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Rates (SAR/L)</th>
                             {isAdmin && (
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                             )}
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {stations.map((s) => (
-                            <tr key={s.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{s.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{s.address || '-'}</td>
-                                {isAdmin && (
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        <button
-                                            onClick={() => handleSetRates(s)}
-                                            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                                        >
-                                            Set Rates
-                                        </button>
+                        {stations.map((s) => {
+                            const prices = stationPrices[s.id] || [];
+
+                            return (
+                                <tr key={s.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{s.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{s.address || '-'}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-700">
+                                        {prices.length > 0 ? (
+                                            <div className="space-y-1">
+                                                {prices.map(p => (
+                                                    <div key={p.fuelType} className="text-xs">
+                                                        <span className="font-medium">{getFuelTypeLabel(p.fuelType)}:</span> {p.pricePerLiter.toFixed(2)}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400 italic">Not set</span>
+                                        )}
                                     </td>
-                                )}
-                            </tr>
-                        ))}
+                                    {isAdmin && (
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <button
+                                                onClick={() => handleSetRates(s)}
+                                                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                                            >
+                                                Set Rates
+                                            </button>
+                                        </td>
+                                    )}
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
