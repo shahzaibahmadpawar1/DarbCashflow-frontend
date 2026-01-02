@@ -26,25 +26,25 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-primary px-4">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-lg shadow-2xl p-8">
+        <div className="bg-card rounded-lg shadow-2xl p-8 border border-card-border">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-2">
+            <h2 className="text-3xl font-extrabold text-card-foreground mb-2">
               Petroleum Station System
             </h2>
-            <p className="text-sm text-gray-600">Sign in to your account</p>
+            <p className="text-sm text-muted-foreground">Sign in to your account</p>
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive-foreground px-4 py-3 rounded-md">
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="username" className="block text-sm font-medium text-foreground mb-2">
                 Username
               </label>
               <input
@@ -53,7 +53,7 @@ export const Login = () => {
                 type="text"
                 autoComplete="username"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -61,7 +61,7 @@ export const Login = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
                 Password
               </label>
               <input
@@ -70,7 +70,7 @@ export const Login = () => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -81,14 +81,14 @@ export const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-600 text-white py-3 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-md hover-elevate active-elevate-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium border border-primary-border"
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </div>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
+          <div className="mt-6 text-center text-sm text-muted-foreground">
             <p>Contact your administrator if you need assistance</p>
           </div>
         </div>

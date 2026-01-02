@@ -2,17 +2,122 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+:root {
+  --background: 210 5% 98%;
+  --foreground: 210 8% 15%;
+  --card: 210 5% 96%;
+  --card-foreground: 210 8% 15%;
+  --card-border: 210 6% 88%;
+  --popover: 210 6% 92%;
+  --popover-foreground: 210 8% 15%;
+  --popover-border: 210 6% 88%;
+  --primary: 25 95% 53%; /* The signature Orange */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 8% 86%;
+  --secondary-foreground: 210 8% 18%;
+  --muted: 210 10% 90%;
+  --muted-foreground: 210 8% 35%;
+  --accent: 210 12% 88%;
+  --accent-foreground: 210 8% 20%;
+  --destructive: 0 84% 42%;
+  --destructive-foreground: 0 10% 98%;
+  --border: 210 6% 88%;
+  --input: 210 12% 72%;
+  --ring: 25 95% 53%;
+  --radius: .5rem;
+
+  /* Custom Elevation & Border logic */
+  --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .08);
+  
+  /* Fallback border calculations */
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.dark {
+  --background: 210 6% 8%;
+  --foreground: 210 8% 92%;
+  --card: 210 6% 10%;
+  --card-foreground: 210 8% 92%;
+  --card-border: 210 6% 16%;
+  --popover: 210 6% 14%;
+  --popover-foreground: 210 8% 92%;
+  --popover-border: 210 6% 16%;
+  --primary: 25 95% 48%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 8% 20%;
+  --secondary-foreground: 210 8% 92%;
+  --muted: 210 10% 16%;
+  --muted-foreground: 210 8% 75%;
+  --accent: 210 12% 18%;
+  --accent-foreground: 210 8% 92%;
+  --destructive: 0 84% 35%;
+  --destructive-foreground: 0 10% 98%;
+  --border: 210 6% 16%;
+  --input: 210 12% 32%;
+  --ring: 25 95% 48%;
+  
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
 }
 
+@layer base {
+  body {
+    @apply font-sans antialiased text-foreground;
+    background-color: hsl(var(--background)); 
+  }
+  
+  * {
+    @apply border-border;
+    transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+}
+
+/* Include the custom elevation utilities */
+@layer utilities {
+  .hover-elevate {
+    position: relative;
+  }
+  
+  .hover-elevate:hover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: var(--elevate-1);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .hover-elevate > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .active-elevate-2 {
+    position: relative;
+  }
+  
+  .active-elevate-2:active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: var(--elevate-2);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .active-elevate-2 > * {
+    position: relative;
+    z-index: 1;
+  }
+}

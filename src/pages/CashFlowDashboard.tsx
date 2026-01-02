@@ -23,6 +23,9 @@ interface CashTransaction {
     fromUser: { name: string };
     toUser: { name: string };
     receiptUrl?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    depositedAt?: string;
   };
 }
 
@@ -140,11 +143,11 @@ export const CashFlowDashboard = () => {
   return (
     <div className="px-4 py-6 sm:px-0">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Cash Flow Dashboard</h1>
+        <h1 className="text-3xl font-bold text-foreground">Cash Flow Dashboard</h1>
         {isSM && (
           <button
             onClick={() => setShowEntryForm(!showEntryForm)}
-            className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover-elevate active-elevate-2 border border-primary-border"
           >
             {showEntryForm ? 'Cancel' : 'New Transaction'}
           </button>
@@ -152,15 +155,15 @@ export const CashFlowDashboard = () => {
       </div>
 
       {showEntryForm && isSM && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Enter Cash Transaction</h2>
+        <div className="bg-card shadow rounded-lg p-6 mb-6 border border-card-border">
+          <h2 className="text-xl font-semibold mb-4 text-card-foreground">Enter Cash Transaction</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Station</label>
+                <label className="block text-sm font-medium text-foreground">Station</label>
                 <select
                   required
-                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                  className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                   value={formData.stationId}
                   onChange={(e) => setFormData({ ...formData, stationId: e.target.value })}
                 >
@@ -173,43 +176,43 @@ export const CashFlowDashboard = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Liters Sold</label>
+                <label className="block text-sm font-medium text-foreground">Liters Sold</label>
                 <input
                   type="number"
                   step="0.01"
                   required
-                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                  className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                   value={formData.litersSold}
                   onChange={(e) => setFormData({ ...formData, litersSold: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Rate per Liter</label>
+                <label className="block text-sm font-medium text-foreground">Rate per Liter</label>
                 <input
                   type="number"
                   step="0.01"
                   required
-                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                  className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                   value={formData.ratePerLiter}
                   onChange={(e) => setFormData({ ...formData, ratePerLiter: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Card Payments</label>
+                <label className="block text-sm font-medium text-foreground">Card Payments</label>
                 <input
                   type="number"
                   step="0.01"
-                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                  className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                   value={formData.cardPayments}
                   onChange={(e) => setFormData({ ...formData, cardPayments: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Bank Deposit</label>
+                <label className="block text-sm font-medium text-foreground">Bank Deposit</label>
                 <input
                   type="number"
                   step="0.01"
-                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                  className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                   value={formData.bankDeposit}
                   onChange={(e) => setFormData({ ...formData, bankDeposit: e.target.value })}
                 />
@@ -217,7 +220,7 @@ export const CashFlowDashboard = () => {
             </div>
             <button
               type="submit"
-              className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover-elevate active-elevate-2 border border-primary-border"
             >
               Submit
             </button>
@@ -225,45 +228,65 @@ export const CashFlowDashboard = () => {
         </div>
       )}
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-card shadow rounded-lg overflow-hidden border border-card-border">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Station</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Liters</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Revenue</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cash to AM</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Created</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Station</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Liters</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Revenue</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Cash to AM</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Sent At</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Accepted At</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Deposited At</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card divide-y divide-border">
             {transactions.map((tx) => (
               <tr key={tx.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(tx.createdAt).toLocaleDateString()}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  {new Date(tx.createdAt).toLocaleString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                   {tx.station.name}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {tx.litersSold.toFixed(2)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                   ${tx.totalRevenue.toFixed(2)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                   ${tx.cashToAM.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <StatusBadge status={tx.status} />
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  {tx.cashTransfer?.createdAt 
+                    ? new Date(tx.cashTransfer.createdAt).toLocaleString()
+                    : '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  {tx.status === 'WITH_AM' || tx.status === 'DEPOSITED'
+                    ? (tx.cashTransfer?.updatedAt 
+                        ? new Date(tx.cashTransfer.updatedAt).toLocaleString()
+                        : '-')
+                    : '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  {tx.cashTransfer?.depositedAt 
+                    ? new Date(tx.cashTransfer.depositedAt).toLocaleString()
+                    : '-'}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   {tx.status === 'PENDING_ACCEPTANCE' && isSM && !tx.cashTransfer && (
                     <button
                       onClick={() => handleTransfer(tx.id)}
-                      className="text-primary-600 hover:text-primary-900"
+                      className="text-primary hover:text-primary/80"
                     >
                       Transfer to AM
                     </button>
@@ -271,13 +294,13 @@ export const CashFlowDashboard = () => {
                   {tx.status === 'PENDING_ACCEPTANCE' && isAM && (
                     <button
                       onClick={() => handleAccept(tx.id)}
-                      className="text-primary-600 hover:text-primary-900 ml-4"
+                      className="text-primary hover:text-primary/80 ml-4"
                     >
                       Accept Cash
                     </button>
                   )}
                   {tx.status === 'WITH_AM' && isAM && (
-                    <label className="text-primary-600 hover:text-primary-900 cursor-pointer">
+                    <label className="text-primary hover:text-primary/80 cursor-pointer">
                       Deposit to Bank
                       <input
                         type="file"
@@ -295,7 +318,7 @@ export const CashFlowDashboard = () => {
                       href={tx.cashTransfer.receiptUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary-600 hover:text-primary-900 ml-2"
+                      className="text-primary hover:text-primary/80 ml-2"
                     >
                       Receipt
                     </a>

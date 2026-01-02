@@ -6,6 +6,7 @@ interface Station {
     id: string;
     name: string;
     address: string;
+    stationType?: string;
 }
 
 interface FuelPrice {
@@ -20,6 +21,7 @@ export const Stations = () => {
     const [formData, setFormData] = useState({
         name: '',
         address: '',
+        stationType: 'OPERATIONAL',
     });
 
     // Fuel pricing state
@@ -64,7 +66,7 @@ export const Stations = () => {
         try {
             await api.post('/api/stations', formData);
             setShowForm(false);
-            setFormData({ name: '', address: '' });
+            setFormData({ name: '', address: '', stationType: 'OPERATIONAL' });
             loadStations();
             alert('Station created successfully');
         } catch (error: any) {
@@ -124,43 +126,55 @@ export const Stations = () => {
     return (
         <div className="px-4 py-6 sm:px-0">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Stations Management</h1>
+                <h1 className="text-3xl font-bold text-foreground">Stations Management</h1>
                 <button
                     onClick={() => setShowForm(!showForm)}
-                    className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover-elevate active-elevate-2 border border-primary-border"
                 >
                     {showForm ? 'Cancel' : 'Add Station'}
                 </button>
             </div>
 
             {showForm && (
-                <div className="bg-white shadow rounded-lg p-6 mb-6">
-                    <h2 className="text-xl font-semibold mb-4">Create New Station</h2>
+                <div className="bg-card shadow rounded-lg p-6 mb-6 border border-card-border">
+                    <h2 className="text-xl font-semibold mb-4 text-card-foreground">Create New Station</h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Station Name</label>
+                                <label className="block text-sm font-medium text-foreground">Station Name</label>
                                 <input
                                     type="text"
                                     required
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                    className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Location / Address</label>
+                                <label className="block text-sm font-medium text-foreground">Location / Address</label>
                                 <input
                                     type="text"
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                    className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                 />
                             </div>
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-foreground">Station Type</label>
+                            <select
+                                className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
+                                value={formData.stationType}
+                                onChange={(e) => setFormData({ ...formData, stationType: e.target.value })}
+                            >
+                                <option value="OPERATIONAL">Operational</option>
+                                <option value="RENTAL">Rental</option>
+                                <option value="FRANCHISE">Franchise</option>
+                            </select>
+                        </div>
                         <button
                             type="submit"
-                            className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+                            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover-elevate active-elevate-2 border border-primary-border"
                         >
                             Create Station
                         </button>
@@ -168,27 +182,33 @@ export const Stations = () => {
                 </div>
             )}
 
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+            <div className="bg-card shadow rounded-lg overflow-hidden border border-card-border">
+                <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Station Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Rates (SAR/L)</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Station Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Location</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Station Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Current Rates (SAR/L)</th>
                             {isAdmin && (
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
                             )}
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-card divide-y divide-border">
                         {stations.map((s) => {
                             const prices = stationPrices[s.id] || [];
 
                             return (
                                 <tr key={s.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{s.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{s.address || '-'}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-700">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{s.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{s.address || '-'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                                        {s.stationType === 'OPERATIONAL' ? 'Operational' : 
+                                         s.stationType === 'RENTAL' ? 'Rental' : 
+                                         s.stationType === 'FRANCHISE' ? 'Franchise' : 'Operational'}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-foreground">
                                         {prices.length > 0 ? (
                                             <div className="space-y-1">
                                                 {prices.map(p => (
@@ -198,14 +218,14 @@ export const Stations = () => {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <span className="text-gray-400 italic">Not set</span>
+                                            <span className="text-muted-foreground italic">Not set</span>
                                         )}
                                     </td>
                                     {isAdmin && (
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                             <button
                                                 onClick={() => handleSetRates(s)}
-                                                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                                                className="bg-primary text-primary-foreground px-3 py-1 rounded hover-elevate active-elevate-2 border border-primary-border"
                                             >
                                                 Set Rates
                                             </button>
@@ -220,16 +240,16 @@ export const Stations = () => {
 
             {/* Set Rates Modal */}
             {showPriceModal && selectedStation && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                        <h3 className="text-lg font-semibold mb-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-card/80 backdrop-blur-sm rounded-lg p-6 max-w-md w-full border border-card-border">
+                        <h3 className="text-lg font-semibold mb-4 text-card-foreground">
                             Set Fuel Rates for {selectedStation.name}
                         </h3>
                         <form onSubmit={handleSubmitPrices}>
                             <div className="space-y-4 mb-6">
                                 {fuelPrices.map((price, index) => (
                                     <div key={price.fuelType}>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-sm font-medium text-foreground mb-2">
                                             {getFuelTypeLabel(price.fuelType)} (SAR/Liter)
                                         </label>
                                         <input
@@ -237,7 +257,7 @@ export const Stations = () => {
                                             step="0.01"
                                             value={price.pricePerLiter}
                                             onChange={(e) => handlePriceChange(index, e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground"
                                             placeholder="Enter price"
                                         />
                                     </div>
@@ -246,7 +266,7 @@ export const Stations = () => {
                             <div className="flex gap-4">
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                    className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover-elevate active-elevate-2 border border-primary-border"
                                 >
                                     Set Rates
                                 </button>
@@ -256,7 +276,7 @@ export const Stations = () => {
                                         setShowPriceModal(false);
                                         setSelectedStation(null);
                                     }}
-                                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                                    className="flex-1 px-4 py-2 bg-muted text-muted-foreground rounded-lg hover-elevate active-elevate-2 border border-muted-border"
                                 >
                                     Cancel
                                 </button>

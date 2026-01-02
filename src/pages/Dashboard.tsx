@@ -22,6 +22,13 @@ interface AreaManager {
   stationManagers?: StationManager[];
 }
 
+interface CashSummary {
+  totalCash: number;
+  cashWithStationManagers: number;
+  cashWithAreaManager: number;
+  cashDepositedInBank: number;
+}
+
 export const Dashboard = () => {
   const { user, isSM, isAM, isAdmin } = useAuth();
   const [areaManagers, setAreaManagers] = useState<AreaManager[]>([]);
@@ -29,6 +36,8 @@ export const Dashboard = () => {
   const [areaManager, setAreaManager] = useState<AreaManager | null>(null);
   const [station, setStation] = useState<Station | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cashSummary, setCashSummary] = useState<CashSummary | null>(null);
+  const [cashLoading, setCashLoading] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -61,6 +70,9 @@ export const Dashboard = () => {
         }));
 
         setAreaManagers(amsWithSMs);
+
+        // Load cash summary for admin
+        loadCashSummary();
       } else if (isAM) {
         // Load station managers under this area manager
         const sms = allUsers.filter((u: any) => u.role === 'SM' && u.areaManagerId === user?.id);
@@ -95,18 +107,30 @@ export const Dashboard = () => {
     }
   };
 
+  const loadCashSummary = async () => {
+    try {
+      setCashLoading(true);
+      const res = await api.get('/api/cash/admin-summary');
+      setCashSummary(res.data);
+    } catch (error) {
+      console.error('Failed to load cash summary', error);
+    } finally {
+      setCashLoading(false);
+    }
+  };
+
   return (
     <div className="px-4 py-6 sm:px-0">
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Welcome, {user?.name}!</h1>
-        <p className="text-gray-600 mb-6">
+      <div className="bg-card shadow rounded-lg p-6 mb-6 border border-card-border">
+        <h1 className="text-3xl font-bold text-card-foreground mb-4">Welcome, {user?.name}!</h1>
+        <p className="text-muted-foreground mb-6">
           You are logged in as <span className="font-semibold">{user?.role}</span>
         </p>
 
         {/* Admin: Organizational Chart */}
         {isAdmin && (
-          <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6 mb-6">
-            <h3 className="text-2xl font-bold text-purple-900 mb-6 flex items-center">
+          <div className="bg-accent/50 border border-border rounded-lg p-6 mb-6">
+            <h3 className="text-2xl font-bold text-foreground mb-6 flex items-center">
               <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
@@ -114,15 +138,15 @@ export const Dashboard = () => {
             </h3>
 
             {loading ? (
-              <p className="text-purple-700">Loading...</p>
+              <p className="text-muted-foreground">Loading...</p>
             ) : areaManagers.length > 0 ? (
               <div className="space-y-6">
                 {areaManagers.map((am) => (
-                  <div key={am.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div key={am.id} className="bg-card rounded-lg shadow-md overflow-hidden border border-card-border">
                     {/* Area Manager Header */}
-                    <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
-                      <div className="flex items-center text-white">
-                        <div className="bg-white bg-opacity-20 rounded-full p-3 mr-4">
+                    <div className="bg-primary p-4">
+                      <div className="flex items-center text-primary-foreground">
+                        <div className="bg-primary-foreground/20 rounded-full p-3 mr-4">
                           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                           </svg>
@@ -140,24 +164,24 @@ export const Dashboard = () => {
                       {am.stationManagers && am.stationManagers.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {am.stationManagers.map((sm) => (
-                            <div key={sm.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
+                            <div key={sm.id} className="border border-border rounded-lg p-4 hover-elevate transition-shadow bg-card">
                               <div className="flex items-start">
-                                <div className="bg-green-100 rounded-full p-2 mr-3">
-                                  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <div className="bg-accent rounded-full p-2 mr-3">
+                                  <svg className="w-5 h-5 text-accent-foreground" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                                   </svg>
                                 </div>
                                 <div className="flex-1">
-                                  <p className="text-xs text-gray-500 font-medium">Station Manager</p>
-                                  <p className="font-semibold text-gray-900">{sm.name}</p>
-                                  <p className="text-xs text-gray-600">ID: {sm.employeeId}</p>
-                                  <div className="mt-2 pt-2 border-t border-gray-200">
+                                  <p className="text-xs text-muted-foreground font-medium">Station Manager</p>
+                                  <p className="font-semibold text-foreground">{sm.name}</p>
+                                  <p className="text-xs text-muted-foreground">ID: {sm.employeeId}</p>
+                                  <div className="mt-2 pt-2 border-t border-border">
                                     <div className="flex items-center text-sm">
-                                      <svg className="w-4 h-4 text-orange-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                      <svg className="w-4 h-4 text-primary mr-1" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                                       </svg>
-                                      <span className="text-gray-700 font-medium">
-                                        {sm.station ? sm.station.name : <span className="text-red-600">Not Assigned</span>}
+                                      <span className="text-foreground font-medium">
+                                        {sm.station ? sm.station.name : <span className="text-destructive">Not Assigned</span>}
                                       </span>
                                     </div>
                                   </div>
@@ -167,33 +191,78 @@ export const Dashboard = () => {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-gray-500 text-center py-4">No station managers assigned to this area manager</p>
+                        <p className="text-muted-foreground text-center py-4">No station managers assigned to this area manager</p>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-purple-700">No area managers found. Create area managers in the Employees page.</p>
+              <p className="text-muted-foreground">No area managers found. Create area managers in the Employees page.</p>
+            )}
+          </div>
+        )}
+
+        {/* Admin: Cash Details */}
+        {isAdmin && (
+          <div className="bg-card shadow rounded-lg p-6 mb-6 border border-card-border">
+            <h3 className="text-2xl font-bold text-card-foreground mb-6 flex items-center">
+              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Cash Overview
+            </h3>
+
+            {cashLoading ? (
+              <p className="text-muted-foreground">Loading cash details...</p>
+            ) : cashSummary ? (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-card shadow rounded-lg p-6 border-l-4 border-primary border border-card-border">
+                  <h3 className="text-sm font-medium text-muted-foreground">Total Cash</h3>
+                  <p className="text-3xl font-bold text-primary mt-2">
+                    ${cashSummary.totalCash.toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-card shadow rounded-lg p-6 border-l-4 border-accent border border-card-border">
+                  <h3 className="text-sm font-medium text-muted-foreground">Cash with Station Managers</h3>
+                  <p className="text-3xl font-bold text-accent-foreground mt-2">
+                    ${cashSummary.cashWithStationManagers.toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-card shadow rounded-lg p-6 border-l-4 border-primary border border-card-border">
+                  <h3 className="text-sm font-medium text-muted-foreground">Cash with Area Manager</h3>
+                  <p className="text-3xl font-bold text-primary mt-2">
+                    ${cashSummary.cashWithAreaManager.toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-card shadow rounded-lg p-6 border-l-4 border-status.online border border-card-border">
+                  <h3 className="text-sm font-medium text-muted-foreground">Cash Deposited in Bank</h3>
+                  <p className="text-3xl font-bold text-[rgb(34_197_94)] mt-2">
+                    ${cashSummary.cashDepositedInBank.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">No cash data available</p>
             )}
           </div>
         )}
 
         {/* SM: Assignment Info */}
         {isSM && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-3">Your Assignment</h3>
+          <div className="bg-accent/50 border border-border rounded-lg p-4 mb-6">
+            <h3 className="text-lg font-semibold text-foreground mb-3">Your Assignment</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-blue-700 font-medium">Assigned Station:</p>
-                <p className="text-blue-900 text-lg">
-                  {station ? station.name : <span className="text-red-600">Not Assigned</span>}
+                <p className="text-sm text-muted-foreground font-medium">Assigned Station:</p>
+                <p className="text-foreground text-lg">
+                  {station ? station.name : <span className="text-destructive">Not Assigned</span>}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-blue-700 font-medium">Reports To (Area Manager):</p>
-                <p className="text-blue-900 text-lg">
-                  {areaManager ? `${areaManager.name} (${areaManager.employeeId})` : <span className="text-red-600">Not Assigned</span>}
+                <p className="text-sm text-muted-foreground font-medium">Reports To (Area Manager):</p>
+                <p className="text-foreground text-lg">
+                  {areaManager ? `${areaManager.name} (${areaManager.employeeId})` : <span className="text-destructive">Not Assigned</span>}
                 </p>
               </div>
             </div>
@@ -202,23 +271,23 @@ export const Dashboard = () => {
 
         {/* AM: Station Managers */}
         {isAM && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <h3 className="text-lg font-semibold text-green-900 mb-3">Station Managers Under You</h3>
+          <div className="bg-accent/50 border border-border rounded-lg p-4 mb-6">
+            <h3 className="text-lg font-semibold text-foreground mb-3">Station Managers Under You</h3>
             {loading ? (
-              <p className="text-green-700">Loading...</p>
+              <p className="text-muted-foreground">Loading...</p>
             ) : stationManagers.length > 0 ? (
               <div className="space-y-2">
                 {stationManagers.map((sm) => (
-                  <div key={sm.id} className="bg-white rounded p-3 border border-green-200">
+                  <div key={sm.id} className="bg-card rounded p-3 border border-border">
                     <div className="flex justify-between items-center">
                       <div>
-                        <p className="font-medium text-green-900">{sm.name}</p>
-                        <p className="text-sm text-green-700">Employee ID: {sm.employeeId}</p>
+                        <p className="font-medium text-foreground">{sm.name}</p>
+                        <p className="text-sm text-muted-foreground">Employee ID: {sm.employeeId}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-green-700">Station:</p>
-                        <p className="font-medium text-green-900">
-                          {sm.station?.name || <span className="text-red-600">Not Assigned</span>}
+                        <p className="text-sm text-muted-foreground">Station:</p>
+                        <p className="font-medium text-foreground">
+                          {sm.station?.name || <span className="text-destructive">Not Assigned</span>}
                         </p>
                       </div>
                     </div>
@@ -226,21 +295,21 @@ export const Dashboard = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-green-700">No station managers assigned to you yet.</p>
+              <p className="text-muted-foreground">No station managers assigned to you yet.</p>
             )}
           </div>
         )}
 
         {/* Module Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-primary-50 p-6 rounded-lg">
-            <h2 className="text-xl font-semibold text-primary-900 mb-2">Cash Flow Module</h2>
-            <p className="text-primary-700 mb-4">
+          <div className="bg-accent/50 p-6 rounded-lg border border-border hover-elevate">
+            <h2 className="text-xl font-semibold text-foreground mb-2">Cash Flow Module</h2>
+            <p className="text-muted-foreground mb-4">
               Track revenue and cash movement from station to bank
             </p>
             <Link
               to="/cash-flow"
-              className="text-primary-600 hover:text-primary-800 font-medium inline-flex items-center"
+              className="text-primary hover:text-primary/80 font-medium inline-flex items-center"
             >
               Go to Cash Flow
               <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,14 +317,14 @@ export const Dashboard = () => {
               </svg>
             </Link>
           </div>
-          <div className="bg-primary-50 p-6 rounded-lg">
-            <h2 className="text-xl font-semibold text-primary-900 mb-2">Inventory Module</h2>
-            <p className="text-primary-700 mb-4">
+          <div className="bg-accent/50 p-6 rounded-lg border border-border hover-elevate">
+            <h2 className="text-xl font-semibold text-foreground mb-2">Inventory Module</h2>
+            <p className="text-muted-foreground mb-4">
               Track fuel levels in tanks and nozzle meter readings
             </p>
             <Link
               to="/inventory"
-              className="text-primary-600 hover:text-primary-800 font-medium inline-flex items-center"
+              className="text-primary hover:text-primary/80 font-medium inline-flex items-center"
             >
               Go to Inventory
               <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -6,19 +6,19 @@ export const StatusBadge = ({ status }: StatusBadgeProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DEPOSITED':
-        return 'bg-green-100 text-green-800';
+        return 'bg-status.online/10 text-[rgb(34_197_94)]';
       case 'WITH_AM':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-[rgb(245_158_11)]/10 text-[rgb(245_158_11)]';
       case 'PENDING_ACCEPTANCE':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-accent text-accent-foreground';
       case 'LOCKED':
-        return 'bg-red-100 text-red-800';
+        return 'bg-destructive/10 text-destructive-foreground';
       case 'OPEN':
-        return 'bg-green-100 text-green-800';
+        return 'bg-status.online/10 text-[rgb(34_197_94)]';
       case 'CLOSED':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground';
     }
   };
 

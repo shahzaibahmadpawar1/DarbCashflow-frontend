@@ -185,44 +185,44 @@ export const Employees = () => {
     return (
         <div className="px-4 py-6 sm:px-0">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
+                <h1 className="text-3xl font-bold text-foreground">Employees</h1>
                 <button
                     onClick={() => setShowForm(!showForm)}
-                    className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover-elevate active-elevate-2 border border-primary-border"
                 >
                     {showForm ? 'Cancel' : 'Add Employee'}
                 </button>
             </div>
 
             {showForm && (
-                <div className="bg-white shadow rounded-lg p-6 mb-6">
-                    <h2 className="text-xl font-semibold mb-4">Create New Employee</h2>
+                <div className="bg-card shadow rounded-lg p-6 mb-6 border border-card-border">
+                    <h2 className="text-xl font-semibold mb-4 text-card-foreground">Create New Employee</h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Name</label>
+                                <label className="block text-sm font-medium text-foreground">Name</label>
                                 <input
                                     type="text"
                                     required
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                    className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Employee ID</label>
+                                <label className="block text-sm font-medium text-foreground">Employee ID</label>
                                 <input
                                     type="text"
                                     required
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                    className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                                     value={formData.employeeId}
                                     onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Role</label>
+                                <label className="block text-sm font-medium text-foreground">Role</label>
                                 <select
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                    className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                                     value={formData.role}
                                     onChange={(e) => setFormData({ ...formData, role: e.target.value, stationId: '', areaManagerId: '' })}
                                 >
@@ -232,11 +232,11 @@ export const Employees = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Password</label>
+                                <label className="block text-sm font-medium text-foreground">Password</label>
                                 <input
                                     type="text"
                                     required
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                    className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 />
@@ -244,9 +244,9 @@ export const Employees = () => {
                             {formData.role === 'SM' && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Assign Station</label>
+                                        <label className="block text-sm font-medium text-foreground">Assign Station</label>
                                         <select
-                                            className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                            className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                                             value={formData.stationId}
                                             onChange={(e) => setFormData({ ...formData, stationId: e.target.value })}
                                         >
@@ -257,9 +257,9 @@ export const Employees = () => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Area Manager</label>
+                                        <label className="block text-sm font-medium text-foreground">Area Manager</label>
                                         <select
-                                            className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                            className="mt-1 block w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                                             value={formData.areaManagerId}
                                             onChange={(e) => setFormData({ ...formData, areaManagerId: e.target.value })}
                                         >
@@ -274,7 +274,7 @@ export const Employees = () => {
                         </div>
                         <button
                             type="submit"
-                            className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+                            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover-elevate active-elevate-2 border border-primary-border"
                         >
                             Create Employee
                         </button>
@@ -283,30 +283,30 @@ export const Employees = () => {
             )}
 
             {/* Admins Section */}
-            <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-                <div className="bg-purple-50 px-6 py-3 border-b border-purple-200">
-                    <h2 className="text-lg font-semibold text-purple-900">Admins ({admins.length})</h2>
+            <div className="bg-card shadow rounded-lg overflow-hidden mb-6 border border-card-border">
+                <div className="bg-accent/50 px-6 py-3 border-b border-border">
+                    <h2 className="text-lg font-semibold text-foreground">Admins ({admins.length})</h2>
                 </div>
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Employee ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Role</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-card divide-y divide-border">
                         {admins.length === 0 ? (
                             <tr>
-                                <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">No admins found</td>
+                                <td colSpan={3} className="px-6 py-4 text-center text-sm text-muted-foreground">No admins found</td>
                             </tr>
                         ) : (
                             admins.map((admin) => (
                                 <tr key={admin.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{admin.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{admin.employeeId}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{admin.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{admin.employeeId}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-accent text-accent-foreground">
                                             {admin.role}
                                         </span>
                                     </td>
@@ -318,54 +318,54 @@ export const Employees = () => {
             </div>
 
             {/* Area Managers Section */}
-            <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-                <div className="bg-blue-50 px-6 py-3 border-b border-blue-200">
-                    <h2 className="text-lg font-semibold text-blue-900">Area Managers ({areaManagers.length})</h2>
+            <div className="bg-card shadow rounded-lg overflow-hidden mb-6 border border-card-border">
+                <div className="bg-accent/50 px-6 py-3 border-b border-border">
+                    <h2 className="text-lg font-semibold text-foreground">Area Managers ({areaManagers.length})</h2>
                 </div>
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Station Managers</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Employee ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Station Managers</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-card divide-y divide-border">
                         {areaManagers.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">No area managers found</td>
+                                <td colSpan={5} className="px-6 py-4 text-center text-sm text-muted-foreground">No area managers found</td>
                             </tr>
                         ) : (
                             areaManagers.map((am) => {
                                 const subordinates = stationManagers.filter(sm => sm.areaManager?.id === am.id);
                                 return (
                                     <tr key={am.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{am.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{am.employeeId}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{am.name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{am.employeeId}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-accent text-accent-foreground">
                                                 {am.role}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                        <td className="px-6 py-4 text-sm text-muted-foreground">
                                             {subordinates.length > 0 ? (
                                                 <div className="flex flex-wrap gap-1">
                                                     {subordinates.map(sm => (
-                                                        <span key={sm.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                        <span key={sm.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent text-accent-foreground">
                                                             {sm.name}
                                                         </span>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-400">No station managers assigned</span>
+                                                <span className="text-muted-foreground">No station managers assigned</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                             <button
                                                 onClick={() => handleAssignAM(am)}
-                                                className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 text-xs"
+                                                className="bg-primary text-primary-foreground px-3 py-1 rounded-md hover-elevate active-elevate-2 text-xs border border-primary-border"
                                             >
                                                 Assign
                                             </button>
@@ -379,46 +379,46 @@ export const Employees = () => {
             </div>
 
             {/* Station Managers Section */}
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-                <div className="bg-green-50 px-6 py-3 border-b border-green-200">
-                    <h2 className="text-lg font-semibold text-green-900">Station Managers ({stationManagers.length})</h2>
+            <div className="bg-card shadow rounded-lg overflow-hidden border border-card-border">
+                <div className="bg-accent/50 px-6 py-3 border-b border-border">
+                    <h2 className="text-lg font-semibold text-foreground">Station Managers ({stationManagers.length})</h2>
                 </div>
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Station</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Area Manager</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Employee ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Station</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Area Manager</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-card divide-y divide-border">
                         {stationManagers.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">No station managers found</td>
+                                <td colSpan={6} className="px-6 py-4 text-center text-sm text-muted-foreground">No station managers found</td>
                             </tr>
                         ) : (
                             stationManagers.map((sm) => (
                                 <tr key={sm.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sm.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sm.employeeId}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{sm.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{sm.employeeId}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-accent text-accent-foreground">
                                             {sm.role}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                         {sm.station?.name || '-'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                         {sm.areaManager?.name || '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         <button
                                             onClick={() => handleAssignSM(sm)}
-                                            className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 text-xs"
+                                            className="bg-primary text-primary-foreground px-3 py-1 rounded-md hover-elevate active-elevate-2 text-xs border border-primary-border"
                                         >
                                             Assign
                                         </button>
@@ -432,12 +432,12 @@ export const Employees = () => {
 
             {/* Assign Area Manager Modal */}
             {showAssignAMModal && selectedAM && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-                        <h2 className="text-xl font-semibold mb-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-card/80 backdrop-blur-sm rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-card-border">
+                        <h2 className="text-xl font-semibold mb-4 text-card-foreground">
                             Assign Station Managers to {selectedAM.name}
                         </h2>
-                        <p className="text-sm text-gray-600 mb-4">
+                        <p className="text-sm text-muted-foreground mb-4">
                             Select the station managers to assign to this area manager. Each station manager can only be assigned to one area manager.
                         </p>
                         <div className="space-y-2 mb-6">
@@ -448,7 +448,7 @@ export const Employees = () => {
                                 return (
                                     <div
                                         key={sm.id}
-                                        className={`flex items-center justify-between p-3 border rounded-md ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200'
+                                        className={`flex items-center justify-between p-3 border rounded-md ${isSelected ? 'bg-accent/50 border-primary' : 'bg-card border-border'
                                             } ${isAssignedToOther ? 'opacity-50' : ''}`}
                                     >
                                         <div className="flex items-center">
@@ -457,19 +457,19 @@ export const Employees = () => {
                                                 checked={isSelected}
                                                 onChange={() => toggleSMSelection(sm.id)}
                                                 disabled={isAssignedToOther}
-                                                className="mr-3 h-4 w-4 text-blue-600 rounded"
+                                                className="mr-3 h-4 w-4 text-primary rounded"
                                             />
                                             <div>
-                                                <p className="font-medium text-sm">{sm.name}</p>
-                                                <p className="text-xs text-gray-500">ID: {sm.employeeId}</p>
+                                                <p className="font-medium text-sm text-foreground">{sm.name}</p>
+                                                <p className="text-xs text-muted-foreground">ID: {sm.employeeId}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
                                             {sm.station && (
-                                                <p className="text-xs text-gray-600">Station: {sm.station.name}</p>
+                                                <p className="text-xs text-muted-foreground">Station: {sm.station.name}</p>
                                             )}
                                             {isAssignedToOther && (
-                                                <p className="text-xs text-red-600">Assigned to: {sm.areaManager?.name}</p>
+                                                <p className="text-xs text-destructive">Assigned to: {sm.areaManager?.name}</p>
                                             )}
                                         </div>
                                     </div>
@@ -483,13 +483,13 @@ export const Employees = () => {
                                     setSelectedAM(null);
                                     setSelectedSMsForAM([]);
                                 }}
-                                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                                className="px-4 py-2 border border-border rounded-md hover-elevate active-elevate-2 bg-background text-foreground"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSaveAMAssignments}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover-elevate active-elevate-2 border border-primary-border"
                             >
                                 Save Assignments
                             </button>
@@ -500,18 +500,18 @@ export const Employees = () => {
 
             {/* Assign Station Manager Modal */}
             {showAssignSMModal && selectedSM && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                        <h2 className="text-xl font-semibold mb-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-card/80 backdrop-blur-sm rounded-lg p-6 max-w-md w-full border border-card-border">
+                        <h2 className="text-xl font-semibold mb-4 text-card-foreground">
                             Assign {selectedSM.name}
                         </h2>
                         <div className="space-y-4 mb-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Assign Station
                                 </label>
                                 <select
-                                    className="w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                    className="w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                                     value={assignSMData.stationId}
                                     onChange={(e) => setAssignSMData({ ...assignSMData, stationId: e.target.value })}
                                 >
@@ -522,11 +522,11 @@ export const Employees = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Assign Area Manager
                                 </label>
                                 <select
-                                    className="w-full rounded-md border border-gray-300 shadow-sm p-2"
+                                    className="w-full rounded-md border border-input shadow-sm p-2 bg-background text-foreground"
                                     value={assignSMData.areaManagerId}
                                     onChange={(e) => setAssignSMData({ ...assignSMData, areaManagerId: e.target.value })}
                                 >
@@ -544,13 +544,13 @@ export const Employees = () => {
                                     setSelectedSM(null);
                                     setAssignSMData({ stationId: '', areaManagerId: '' });
                                 }}
-                                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                                className="px-4 py-2 border border-border rounded-md hover-elevate active-elevate-2 bg-background text-foreground"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSaveSMAssignment}
-                                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover-elevate active-elevate-2 border border-primary-border"
                             >
                                 Save Assignment
                             </button>

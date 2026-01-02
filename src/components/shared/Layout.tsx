@@ -19,8 +19,8 @@ export const Layout = ({ children }: LayoutProps) => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-primary-600 text-white shadow-lg">
+    <div className="min-h-screen bg-background">
+      <nav className="bg-primary text-primary-foreground shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
@@ -31,8 +31,8 @@ export const Layout = ({ children }: LayoutProps) => {
                 <Link
                   to="/dashboard"
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/dashboard')
-                    ? 'border-white'
-                    : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                    ? 'border-primary-foreground'
+                    : 'border-transparent text-primary-foreground/80 hover:border-primary-foreground/50 hover:text-primary-foreground'
                     }`}
                 >
                   Dashboard
@@ -40,8 +40,8 @@ export const Layout = ({ children }: LayoutProps) => {
                 <Link
                   to="/cash-flow"
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/cash-flow')
-                    ? 'border-white'
-                    : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                    ? 'border-primary-foreground'
+                    : 'border-transparent text-primary-foreground/80 hover:border-primary-foreground/50 hover:text-primary-foreground'
                     }`}
                 >
                   Cash Flow
@@ -49,8 +49,8 @@ export const Layout = ({ children }: LayoutProps) => {
                 <Link
                   to="/inventory"
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/inventory')
-                    ? 'border-white'
-                    : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                    ? 'border-primary-foreground'
+                    : 'border-transparent text-primary-foreground/80 hover:border-primary-foreground/50 hover:text-primary-foreground'
                     }`}
                 >
                   Inventory
@@ -59,8 +59,8 @@ export const Layout = ({ children }: LayoutProps) => {
                   <Link
                     to="/floating-cash"
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/floating-cash')
-                      ? 'border-white'
-                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                      ? 'border-primary-foreground'
+                      : 'border-transparent text-primary-foreground/80 hover:border-primary-foreground/50 hover:text-primary-foreground'
                       }`}
                   >
                     Floating Cash
@@ -70,8 +70,8 @@ export const Layout = ({ children }: LayoutProps) => {
                   <Link
                     to="/employees"
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/employees')
-                      ? 'border-white'
-                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                      ? 'border-primary-foreground'
+                      : 'border-transparent text-primary-foreground/80 hover:border-primary-foreground/50 hover:text-primary-foreground'
                       }`}
                   >
                     Employees
@@ -81,8 +81,8 @@ export const Layout = ({ children }: LayoutProps) => {
                   <Link
                     to="/stations"
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/stations')
-                      ? 'border-white'
-                      : 'border-transparent text-primary-100 hover:border-primary-300 hover:text-white'
+                      ? 'border-primary-foreground'
+                      : 'border-transparent text-primary-foreground/80 hover:border-primary-foreground/50 hover:text-primary-foreground'
                       }`}
                   >
                     Stations
@@ -94,7 +94,7 @@ export const Layout = ({ children }: LayoutProps) => {
               <span className="text-sm mr-4">{user?.name} ({user?.role})</span>
               <button
                 onClick={handleLogout}
-                className="bg-primary-700 hover:bg-primary-800 px-4 py-2 rounded-md text-sm font-medium"
+                className="bg-primary/90 hover-elevate active-elevate-2 px-4 py-2 rounded-md text-sm font-medium text-primary-foreground border border-primary-border"
               >
                 Logout
               </button>

@@ -201,9 +201,9 @@ export const InventoryDashboard = () => {
   if (!stationId) {
     return (
       <div className="px-4 py-6">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-yellow-900 mb-2">No Station Assigned</h2>
-          <p className="text-yellow-700">
+        <div className="bg-accent/50 border border-border rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-foreground mb-2">No Station Assigned</h2>
+          <p className="text-muted-foreground">
             You need to be assigned to a station to access the inventory dashboard.
           </p>
         </div>
@@ -215,11 +215,11 @@ export const InventoryDashboard = () => {
     <div className="px-4 py-6 sm:px-0">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Fuel Sales Dashboard</h1>
+        <h1 className="text-3xl font-bold text-foreground">Fuel Sales Dashboard</h1>
         {isAdmin && (
           <button
             onClick={() => setShowPriceForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover-elevate active-elevate-2 border border-primary-border"
           >
             Set Fuel Prices
           </button>
@@ -227,13 +227,13 @@ export const InventoryDashboard = () => {
       </div>
 
       {/* Current Prices */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Current Fuel Prices</h2>
+      <div className="bg-card shadow rounded-lg p-6 mb-6 border border-card-border">
+        <h2 className="text-xl font-semibold mb-4 text-card-foreground">Current Fuel Prices</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {fuelPrices.map((price) => (
-            <div key={price.id} className="border rounded-lg p-4">
-              <h3 className="font-semibold text-gray-700">{getFuelTypeLabel(price.fuelType)}</h3>
-              <p className="text-2xl font-bold text-primary-600">{price.pricePerLiter.toFixed(2)} SAR/L</p>
+            <div key={price.id} className="border border-border rounded-lg p-4 bg-card">
+              <h3 className="font-semibold text-foreground">{getFuelTypeLabel(price.fuelType)}</h3>
+              <p className="text-2xl font-bold text-primary">{price.pricePerLiter.toFixed(2)} SAR/L</p>
             </div>
           ))}
         </div>
@@ -241,14 +241,14 @@ export const InventoryDashboard = () => {
 
       {/* Shift Info */}
       {currentShift && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <div className="bg-card shadow rounded-lg p-6 mb-6 border border-card-border">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-xl font-semibold text-card-foreground">
               Current Shift: {currentShift.shiftType}
             </h2>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${currentShift.locked
-              ? 'bg-red-100 text-red-800'
-              : 'bg-green-100 text-green-800'
+              ? 'bg-destructive/10 text-destructive-foreground'
+              : 'bg-status.online/10 text-[rgb(34_197_94)]'
               }`}>
               {currentShift.locked ? 'Locked' : 'Open'}
             </span>
@@ -256,27 +256,27 @@ export const InventoryDashboard = () => {
 
           {/* Nozzle Sales Table */}
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nozzle</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fuel Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price/L</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity (L)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Nozzle</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Fuel Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Price/L</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Quantity (L)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Total Amount</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {nozzleSales.map((sale) => {
                   const totalAmount = parseFloat(calculateTotal(sale.quantityLiters, sale.pricePerLiter));
                   return (
                     <tr key={sale.id}>
-                      <td className="px-6 py-4 whitespace-nowrap font-medium">{sale.nozzle.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{getFuelTypeLabel(sale.nozzle.fuelType)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{sale.pricePerLiter.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-foreground">{sale.nozzle.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-foreground">{getFuelTypeLabel(sale.nozzle.fuelType)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-foreground">{sale.pricePerLiter.toFixed(2)}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {currentShift.locked ? (
-                          sale.quantityLiters.toFixed(2)
+                          <span className="text-foreground">{sale.quantityLiters.toFixed(2)}</span>
                         ) : (
                           <input
                             type="text"
@@ -288,12 +288,12 @@ export const InventoryDashboard = () => {
                                 handleQuantityChange(sale.id, value || '0');
                               }
                             }}
-                            className="w-32 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-32 px-2 py-1 border border-input rounded focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                             placeholder="0.00"
                           />
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap font-bold text-orange-600">
+                      <td className="px-6 py-4 whitespace-nowrap font-bold text-primary">
                         {totalAmount.toFixed(2)} SAR
                       </td>
                     </tr>
@@ -301,7 +301,7 @@ export const InventoryDashboard = () => {
                 })}
                 {nozzleSales.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
                       No nozzle sales data. Please run the setup SQL scripts and refresh the page.
                     </td>
                   </tr>
@@ -312,22 +312,22 @@ export const InventoryDashboard = () => {
 
           {/* Summary Section - Total with Card/Cash Split */}
           {nozzleSales.length > 0 && (
-            <div className="mt-6 bg-gray-50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-4">Payment Summary</h3>
+            <div className="mt-6 bg-muted/50 rounded-lg p-6 border border-border">
+              <h3 className="text-lg font-semibold mb-4 text-foreground">Payment Summary</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Total Amount */}
-                <div className="bg-white rounded-lg p-4 border-2 border-orange-500">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Total Amount</label>
-                  <div className="text-3xl font-bold text-orange-600">
+                <div className="bg-card rounded-lg p-4 border-2 border-primary border border-card-border">
+                  <label className="block text-sm font-medium text-foreground mb-2">Total Amount</label>
+                  <div className="text-3xl font-bold text-primary">
                     {nozzleSales.reduce((sum, sale) => sum + (sale.quantityLiters * sale.pricePerLiter), 0).toFixed(2)} SAR
                   </div>
                 </div>
 
                 {/* Card Amount */}
-                <div className="bg-white rounded-lg p-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Card Amount (SAR)</label>
+                <div className="bg-card rounded-lg p-4 border border-card-border">
+                  <label className="block text-sm font-medium text-foreground mb-2">Card Amount (SAR)</label>
                   {currentShift.locked ? (
-                    <div className="text-2xl font-semibold text-gray-900">
+                    <div className="text-2xl font-semibold text-foreground">
                       {nozzleSales.reduce((sum, sale) => sum + (sale.cardAmount || 0), 0).toFixed(2)}
                     </div>
                   ) : (
@@ -340,17 +340,17 @@ export const InventoryDashboard = () => {
                           handlePaymentChange(nozzleSales[0].id, 'cardAmount', value || '0');
                         }
                       }}
-                      className="w-full px-4 py-3 text-xl border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                      className="w-full px-4 py-3 text-xl border-2 border-input rounded-lg focus:border-ring focus:outline-none bg-background text-foreground"
                       placeholder="0.00"
                     />
                   )}
                 </div>
 
                 {/* Cash Amount */}
-                <div className="bg-white rounded-lg p-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Cash Amount (SAR)</label>
+                <div className="bg-card rounded-lg p-4 border border-card-border">
+                  <label className="block text-sm font-medium text-foreground mb-2">Cash Amount (SAR)</label>
                   {currentShift.locked ? (
-                    <div className="text-2xl font-semibold text-gray-900">
+                    <div className="text-2xl font-semibold text-foreground">
                       {nozzleSales.reduce((sum, sale) => sum + (sale.cashAmount || 0), 0).toFixed(2)}
                     </div>
                   ) : (
@@ -363,7 +363,7 @@ export const InventoryDashboard = () => {
                           handlePaymentChange(nozzleSales[0].id, 'cashAmount', value || '0');
                         }
                       }}
-                      className="w-full px-4 py-3 text-xl border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                      className="w-full px-4 py-3 text-xl border-2 border-input rounded-lg focus:border-ring focus:outline-none bg-background text-foreground"
                       placeholder="0.00"
                     />
                   )}
@@ -378,7 +378,7 @@ export const InventoryDashboard = () => {
               <button
                 onClick={handleSubmitSales}
                 disabled={submitting}
-                className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover-elevate active-elevate-2 disabled:opacity-50 disabled:cursor-not-allowed border border-primary-border"
               >
                 {submitting ? 'Submitting...' : 'Submit Sales & Lock Shift'}
               </button>
@@ -389,16 +389,16 @@ export const InventoryDashboard = () => {
 
       {/* Price Form Modal */}
       {showPriceForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Set Fuel Price</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card/80 backdrop-blur-sm rounded-lg p-6 max-w-md w-full border border-card-border">
+            <h3 className="text-lg font-semibold mb-4 text-card-foreground">Set Fuel Price</h3>
             <form onSubmit={handleSetPrice}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Fuel Type</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Fuel Type</label>
                 <select
                   value={priceFormData.fuelType}
                   onChange={(e) => setPriceFormData({ ...priceFormData, fuelType: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground"
                   required
                 >
                   <option value="91_GASOLINE">91 Gasoline</option>
@@ -407,27 +407,27 @@ export const InventoryDashboard = () => {
                 </select>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Price Per Liter (SAR)</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Price Per Liter (SAR)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={priceFormData.pricePerLiter}
                   onChange={(e) => setPriceFormData({ ...priceFormData, pricePerLiter: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground"
                   required
                 />
               </div>
               <div className="flex gap-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover-elevate active-elevate-2 border border-primary-border"
                 >
                   Set Price
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowPriceForm(false)}
-                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  className="flex-1 px-4 py-2 bg-muted text-muted-foreground rounded-lg hover-elevate active-elevate-2 border border-muted-border"
                 >
                   Cancel
                 </button>
