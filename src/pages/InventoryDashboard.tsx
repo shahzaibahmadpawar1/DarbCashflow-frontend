@@ -84,7 +84,7 @@ export const InventoryDashboard = () => {
   const [showTankerModal, setShowTankerModal] = useState(false);
   const [submittingTanker, setSubmittingTanker] = useState(false);
   const [tankerFormData, setTankerFormData] = useState({
-    tankId: '',
+    fuelType: '',
     litersDelivered: '',
     deliveryDate: new Date().toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
     aramcoTicket: '',
@@ -440,14 +440,17 @@ export const InventoryDashboard = () => {
   const handleAddTankerDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!tankerFormData.tankId || !tankerFormData.litersDelivered) {
-      alert('Please select a tank and enter liters delivered');
+    if (!tankerFormData.fuelType || !tankerFormData.litersDelivered) {
+      alert('Please select a fuel type and enter liters delivered');
       return;
     }
 
     try {
       setSubmittingTanker(true);
-      await api.post(`/api/inventory/tanks/${tankerFormData.tankId}/deliveries`, {
+
+      // Use the new endpoint that accepts stationId and fuelType
+      await api.post(`/api/inventory/stations/${stationId}/deliveries`, {
+        fuelType: tankerFormData.fuelType, // Send fuel type
         litersDelivered: parseFloat(tankerFormData.litersDelivered),
         deliveryDate: new Date(tankerFormData.deliveryDate).toISOString(),
         aramcoTicket: tankerFormData.aramcoTicket,
@@ -457,7 +460,7 @@ export const InventoryDashboard = () => {
       alert('Tanker delivery recorded successfully!');
       setShowTankerModal(false);
       setTankerFormData({
-        tankId: '',
+        fuelType: '',
         litersDelivered: '',
         deliveryDate: new Date().toISOString().slice(0, 16),
         aramcoTicket: '',
@@ -1174,20 +1177,24 @@ export const InventoryDashboard = () => {
               <form onSubmit={handleAddTankerDelivery}>
                 <div className="space-y-4">
                   {/* Tank Selection */}
+                  {/* Fuel Type Selection */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Tank *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Fuel Type *</label>
                     <select
-                      value={tankerFormData.tankId}
-                      onChange={(e) => setTankerFormData({ ...tankerFormData, tankId: e.target.value })}
+                      value={tankerFormData.fuelType}
+                      onChange={(e) => setTankerFormData({ ...tankerFormData, fuelType: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                       required
                     >
-                      <option value="">Choose a tank...</option>
-                      {tanks.map((tank) => (
-                        <option key={tank.id} value={tank.id}>
-                          {getFuelTypeLabel(tank.fuelType)} - Current: {(tank.currentLevel ?? 0).toFixed(2)} L
-                        </option>
-                      ))}
+                      <option value="">Choose Fuel Type...</option>
+                      {['91_GASOLINE', '95_GASOLINE', 'DIESEL'].map((ft) => {
+                        const tank = tanks.find(t => t.fuelType === ft);
+                        return (
+                          <option key={ft} value={ft}>
+                            {getFuelTypeLabel(ft)} {tank ? `(Current: ${(tank.currentLevel ?? 0).toFixed(2)} L)` : ''}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
