@@ -26,11 +26,13 @@ interface NozzleSale {
 
 interface Shift {
   id: string;
-  shiftType: string;
+  stationId: string;
+  shiftType: 'DAY' | 'NIGHT';
   status: string;
   locked: boolean;
   startTime?: string;
   endTime?: string;
+  createdAt?: string;
   nozzleSales?: NozzleSale[];
 }
 
@@ -70,6 +72,9 @@ export const InventoryDashboard = () => {
   const [creatingShift, setCreatingShift] = useState(false);
   const [paymentValidationError, setPaymentValidationError] = useState<string>('');
 
+  // Admin: Station Manager selection
+  const [stationManagers, setStationManagers] = useState<Array<{ id: string; name: string; employeeId: string; station: { id: string; name: string } }>>([]);
+
   // Previous shifts
   const [previousShifts, setPreviousShifts] = useState<Shift[]>([]);
   const [selectedShiftDetails, setSelectedShiftDetails] = useState<Shift | null>(null);
@@ -87,13 +92,40 @@ export const InventoryDashboard = () => {
   });
 
   useEffect(() => {
-    if (user?.stationId) {
+    if (isAdmin) {
+      // Load station managers for admin
+      loadStationManagers();
+    } else if (user?.stationId) {
       setStationId(user.stationId);
       loadData(user.stationId);
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isAdmin]);
+
+  const loadStationManagers = async () => {
+    try {
+      const res = await api.get('/api/users?role=SM');
+      setStationManagers(res.data.users || []);
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to load station managers', error);
+      setLoading(false);
+    }
+  };
+
+  const handleSelectManager = (stationId: string) => {
+    if (!stationId) {
+      alert('This manager is not assigned to a station');
+      return;
+    }
+    setStationId(stationId);
+    loadData(stationId);
+  };
+
+  const handleBackToStationList = () => {
+    setStationId('');
+  };
 
   const loadData = async (sid: string) => {
     try {
@@ -199,7 +231,7 @@ export const InventoryDashboard = () => {
             </div>
             <div class="info-item">
               <div class="info-label">Shift End Time:</div>
-              <div>${shift.endTime ? new Date(shift.endTime).toLocaleString() : '-'}</div>
+              <div>${shift.createdAt ? new Date(shift.createdAt).toLocaleString() : (shift.startTime ? new Date(shift.startTime).toLocaleString() : '-')}</div>
             </div>
           </div>
 
@@ -461,6 +493,54 @@ export const InventoryDashboard = () => {
   }
 
   if (!stationId) {
+    if (isAdmin) {
+      return (
+        <div className="px-4 py-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Station Inventory Management</h1>
+            <p className="text-gray-600 mb-6">Select a Station Manager to view and manage their station's inventory</p>
+
+            {loading ? (
+              <LoadingSpinner />
+            ) : stationManagers.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                <p>No Station Managers found.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {stationManagers.map((manager) => (
+                  <div
+                    key={manager.id}
+                    onClick={() => handleSelectManager(manager.station?.id)}
+                    className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow cursor-pointer bg-white group"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      </div>
+                      <svg className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">{manager.station?.name || 'Unassigned Station'}</h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span>{manager.name}</span>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500">ID: {manager.employeeId}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="px-4 py-6">
         <div className="bg-accent/50 border border-border rounded-lg p-6">
@@ -479,6 +559,17 @@ export const InventoryDashboard = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div>
+            {isAdmin && (
+              <button
+                onClick={handleBackToStationList}
+                className="flex items-center gap-1 text-gray-500 hover:text-primary mb-2 transition-colors text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Station List
+              </button>
+            )}
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Fuel Sales Dashboard</h1>
             <p className="text-gray-600">Track fuel levels in tanks and nozzle meter readings</p>
           </div>
@@ -612,7 +703,7 @@ export const InventoryDashboard = () => {
                   <tr key={shift.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{shift.shiftType}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                      {shift.endTime ? new Date(shift.endTime).toLocaleString() : '-'}
+                      {shift.createdAt ? new Date(shift.createdAt).toLocaleString() : (shift.startTime ? new Date(shift.startTime).toLocaleString() : '-')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -922,7 +1013,7 @@ export const InventoryDashboard = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Shift End Time</label>
-                    <p className="text-gray-900">{selectedShiftDetails.endTime ? new Date(selectedShiftDetails.endTime).toLocaleString() : '-'}</p>
+                    <p className="text-gray-900">{selectedShiftDetails.createdAt ? new Date(selectedShiftDetails.createdAt).toLocaleString() : (selectedShiftDetails.startTime ? new Date(selectedShiftDetails.startTime).toLocaleString() : '-')}</p>
                   </div>
                 </div>
 
