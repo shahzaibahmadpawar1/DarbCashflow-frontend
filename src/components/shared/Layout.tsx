@@ -10,8 +10,25 @@ export const Layout = ({ children }: LayoutProps) => {
   const { user, logout, isAdmin, isAM, isSM } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    // Always default to true (open) for better UX
+    // Users can close it if they want, and it will persist
+    try {
+      const saved = localStorage.getItem('sidebarOpen');
+      // If explicitly set to false, respect that, otherwise default to true
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch (error) {
+      console.error('Error reading sidebar state:', error);
+      return true; // Default to open on error
+    }
+  });
   const [scrollY, setScrollY] = useState(0);
+
+  // Persist sidebar state to localStorage
+  useEffect(() => {
+    localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
+    console.log('Sidebar state:', sidebarOpen); // Debug log
+  }, [sidebarOpen]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,20 +54,64 @@ export const Layout = ({ children }: LayoutProps) => {
     { path: '/stations', label: 'Stations', icon: '🏢', roles: ['Admin'] },
   ];
 
+  // Fallback: Try to get user from localStorage if useAuth hasn't loaded yet
+  const getUserRole = () => {
+    if (user?.role) return user.role;
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        return parsed.role;
+      }
+    } catch (e) {
+      console.error('Error reading user from localStorage:', e);
+    }
+    return null;
+  };
+
+  const userRole = getUserRole();
+  const effectiveIsAdmin = userRole === 'Admin' || isAdmin;
+  const effectiveIsAM = userRole === 'AM' || isAM;
+  const effectiveIsSM = userRole === 'SM' || isSM;
+
   const filteredMenuItems = menuItems.filter(item => {
-    if (item.roles.includes('Admin') && isAdmin) return true;
-    if (item.roles.includes('AM') && isAM) return true;
-    if (item.roles.includes('SM') && isSM) return true;
+    if (item.roles.includes('Admin') && effectiveIsAdmin) return true;
+    if (item.roles.includes('AM') && effectiveIsAM) return true;
+    if (item.roles.includes('SM') && effectiveIsSM) return true;
     return false;
   });
+
+  // Debug logging
+  useEffect(() => {
+    console.log('=== Sidebar Debug Info ===');
+    console.log('User:', user);
+    console.log('User Role:', user?.role);
+    console.log('isAdmin:', isAdmin, '| effectiveIsAdmin:', effectiveIsAdmin);
+    console.log('isAM:', isAM, '| effectiveIsAM:', effectiveIsAM);
+    console.log('isSM:', isSM, '| effectiveIsSM:', effectiveIsSM);
+    console.log('User Role from fallback:', userRole);
+    console.log('Filtered Menu Items:', filteredMenuItems);
+    console.log('Total Menu Items:', filteredMenuItems.length);
+  }, [user, isAdmin, isAM, isSM, filteredMenuItems, userRole, effectiveIsAdmin, effectiveIsAM, effectiveIsSM]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Bar */}
       <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200/50 sticky top-0 z-50">
         <div className="flex items-center justify-between px-6 h-16">
-          {/* Logo Section */}
+          {/* Logo Section with Hamburger Menu */}
           <div className="flex items-center gap-3">
+            {/* Hamburger Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
+              title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xl">D</span>
             </div>
@@ -101,24 +162,18 @@ export const Layout = ({ children }: LayoutProps) => {
       <div className="flex">
         {/* Sidebar Navigation */}
         <aside
-          className={`${
-            sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
-          } bg-gray-900/80 backdrop-blur-md text-white transition-all duration-300 ease-in-out relative`}
-          style={{
-            backgroundImage: 'url("/bg.jpg")',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed',
-          }}
+          className={`${sidebarOpen ? 'w-64' : 'w-0'
+            } bg-white border-r border-gray-200 text-gray-900 transition-all duration-300 ease-in-out relative min-h-screen flex-shrink-0 ${!sidebarOpen ? 'overflow-hidden' : ''
+            }`}
         >
-          <div className="absolute inset-0 bg-gray-900/70 backdrop-blur-md"></div>
-          <div className="relative z-10 h-full flex flex-col">
+          <div className="relative z-10 h-full flex flex-col min-h-screen">
             {/* Sidebar Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
-              <h2 className="text-lg font-semibold">Navigation</h2>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold whitespace-nowrap text-gray-900">Navigation</h2>
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close sidebar"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -127,34 +182,42 @@ export const Layout = ({ children }: LayoutProps) => {
             </div>
 
             {/* Menu Items */}
-            <nav className="flex-1 p-4 space-y-2">
-              {filteredMenuItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                    isActive(item.path)
-                      ? 'bg-primary text-white shadow-lg'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  }`}
-                >
-                  <span className="text-xl">{item.icon}</span>
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              ))}
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+              {filteredMenuItems.length > 0 ? (
+                filteredMenuItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 whitespace-nowrap ${isActive(item.path)
+                        ? 'bg-primary text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                  >
+                    <span className="text-xl">{item.icon}</span>
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                ))
+              ) : (
+                <div className="text-center py-8 px-4">
+                  <p className="text-gray-400 text-sm mb-2">No menu items available</p>
+                  <p className="text-gray-500 text-xs">
+                    {user ? `Role: ${user.role}` : 'Please log in'}
+                  </p>
+                </div>
+              )}
             </nav>
 
             {/* User Info at Bottom */}
-            <div className="p-4 border-t border-gray-700/50">
+            <div className="p-4 border-t border-gray-200">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-white font-semibold">
                     {user?.name?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-                  <p className="text-xs text-gray-400 truncate">{user?.employeeId || user?.role}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{user?.employeeId || user?.role}</p>
                 </div>
               </div>
             </div>
@@ -164,7 +227,7 @@ export const Layout = ({ children }: LayoutProps) => {
         {/* Main Content */}
         <main className="flex-1 min-h-screen relative">
           {/* Background Image */}
-          <div 
+          <div
             className="fixed inset-0 z-0 pointer-events-none"
             style={{
               backgroundImage: 'url("/bg.jpg")',
@@ -174,15 +237,15 @@ export const Layout = ({ children }: LayoutProps) => {
               backgroundAttachment: 'fixed',
             }}
           />
-          
+
           {/* White overlay that fades as we scroll - more white at top, less as we scroll */}
-          <div 
+          <div
             className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-300"
             style={{
               background: `linear-gradient(to bottom, rgba(255,255,255,${Math.max(0.95 - scrollY / 800, 0.3)}) 0%, rgba(255,255,255,${Math.max(0.85 - scrollY / 600, 0.1)}) 50%, rgba(255,255,255,${Math.max(0.7 - scrollY / 400, 0)}) 100%)`,
             }}
           />
-          
+
           <div className="relative z-10 p-6">
             {children}
           </div>
@@ -193,10 +256,10 @@ export const Layout = ({ children }: LayoutProps) => {
       <footer className="bg-white/80 backdrop-blur-md border-t border-gray-200/50 py-4 px-6 text-center relative z-10">
         <p className="text-xs text-gray-500">
           Developed and Powered by{' '}
-          <a 
-            href="https://www.nocastra.com/" 
-            target="_blank" 
-            rel="noopener noreferrer" 
+          <a
+            href="https://www.nocastra.com/"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-primary font-medium hover:underline"
           >
             Nocastra

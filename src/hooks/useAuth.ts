@@ -19,14 +19,23 @@ export const useAuth = () => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
+    console.log('=== useAuth Debug ===');
+    console.log('Token:', token ? 'exists' : 'missing');
+    console.log('Stored User:', storedUser);
+
     if (token && storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        console.log('Parsed User:', parsedUser);
+        console.log('User Role:', parsedUser.role);
+        setUser(parsedUser);
       } catch (error) {
         console.error('Failed to parse stored user', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
+    } else {
+      console.log('No token or user found in localStorage');
     }
 
     setLoading(false);
