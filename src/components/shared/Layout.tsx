@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +11,15 @@ export const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -150,12 +159,48 @@ export const Layout = ({ children }: LayoutProps) => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-h-screen bg-gray-50">
-          <div className="p-6">
+        <main className="flex-1 min-h-screen bg-gray-50 relative">
+          {/* Background Image with Gradient Overlay */}
+          <div 
+            className="fixed inset-0 z-0 pointer-events-none"
+            style={{
+              backgroundImage: 'url("/bg.jpg")',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundAttachment: 'fixed',
+            }}
+          >
+            {/* Gradient overlay that clears as we scroll */}
+            <div 
+              className="absolute inset-0 transition-opacity duration-300"
+              style={{
+                background: `linear-gradient(to bottom, rgba(0,0,0,${Math.max(0.2 - scrollY / 1000, 0)}) 0%, rgba(0,0,0,${Math.max(0.1 - scrollY / 2000, 0)}) 50%, transparent 100%)`,
+                opacity: Math.max(1 - scrollY / 500, 0.3),
+              }}
+            />
+          </div>
+          
+          <div className="relative z-10 p-6">
             {children}
           </div>
         </main>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 py-4 px-6 text-center">
+        <p className="text-xs text-gray-500">
+          Powered by{' '}
+          <a 
+            href="https://www.nocastra.com/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-primary font-medium hover:underline"
+          >
+            Nocastra
+          </a>
+        </p>
+      </footer>
 
       {/* Sidebar Toggle Button (when closed) */}
       {!sidebarOpen && (

@@ -461,40 +461,13 @@ export const InventoryDashboard = () => {
                   )}
                 </div>
               </div>
-              {!currentShift.locked && (() => {
-                const totalAmount = nozzleSales.reduce((sum, sale) => sum + (sale.quantityLiters * sale.pricePerLiter), 0);
-                const cardAmount = nozzleSales[0]?.cardAmount || 0;
-                const cashAmount = nozzleSales[0]?.cashAmount || 0;
-                const paymentSum = cardAmount + cashAmount;
-                const exceedsTotal = paymentSum > totalAmount && totalAmount > 0;
-                
-                return (
-                  <div className={`mt-4 p-3 rounded-lg border ${
-                    exceedsTotal || paymentValidationError
-                      ? 'bg-red-50 border-red-200' 
-                      : 'bg-blue-50 border-blue-200'
-                  }`}>
-                    <p className={`text-sm ${
-                      exceedsTotal || paymentValidationError ? 'text-red-800' : 'text-blue-800'
-                    }`}>
-                      {paymentValidationError ? (
-                        <><strong>Error:</strong> {paymentValidationError}</>
-                      ) : exceedsTotal ? (
-                        <>
-                          <strong>Warning:</strong> Card + Cash amount ({paymentSum.toFixed(2)} SAR) exceeds Total Amount ({totalAmount.toFixed(2)} SAR) by {(paymentSum - totalAmount).toFixed(2)} SAR
-                        </>
-                      ) : (
-                        <>
-                          <strong>Note:</strong> Card + Cash amount should not exceed Total Amount from all nozzles. 
-                          {totalAmount > 0 && (
-                            <> Remaining: {(totalAmount - paymentSum).toFixed(2)} SAR</>
-                          )}
-                        </>
-                      )}
-                    </p>
-                  </div>
-                );
-              })()}
+              {!currentShift.locked && paymentValidationError && (
+                <div className="mt-4 p-3 rounded-lg border bg-red-50 border-red-200">
+                  <p className="text-sm text-red-800">
+                    <strong>Error:</strong> {paymentValidationError}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
