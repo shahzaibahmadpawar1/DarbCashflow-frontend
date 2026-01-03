@@ -59,6 +59,12 @@ export const InventoryDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Shift Combination State
+  const [selectedShiftIds, setSelectedShiftIds] = useState<string[]>([]);
+  const [showCombinedModal, setShowCombinedModal] = useState(false);
+  const [combinedShiftData, setCombinedShiftData] = useState<any>(null);
+
+
   // Admin price management
   const [showPriceForm, setShowPriceForm] = useState(false);
   const [priceFormData, setPriceFormData] = useState({
@@ -301,6 +307,165 @@ export const InventoryDashboard = () => {
     } catch (error: any) {
       alert(error.response?.data?.error || 'Failed to delete shift');
     }
+  };
+
+  const handleToggleShiftSelection = (shiftId: string) => {
+    setSelectedShiftIds(prev => {
+      if (prev.includes(shiftId)) {
+        return prev.filter(id => id !== shiftId);
+      }
+      if (prev.length >= 2) {
+        return [...prev.slice(1), shiftId];
+      }
+      return [...prev, shiftId];
+    });
+  };
+
+  const handleCombineShifts = async () => {
+    if (selectedShiftIds.length !== 2) return;
+
+    setLoading(true);
+    try {
+      const [shift1Res, shift2Res] = await Promise.all([
+        api.get(`/api/inventory/shifts/${selectedShiftIds[0]}/details`),
+        api.get(`/api/inventory/shifts/${selectedShiftIds[1]}/details`)
+      ]);
+
+      const shift1 = shift1Res.data.shift;
+      const shift2 = shift2Res.data.shift;
+
+      const shifts = [shift1, shift2].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+      // Aggregate Data
+      const combined = {
+        shifts,
+        nozzleSales: [] as any[],
+        totalCard: 0,
+        totalCash: 0,
+        totalRevenue: 0,
+      };
+
+      const card1 = shift1.nozzleSales?.[0]?.cardAmount || 0;
+      const cash1 = shift1.nozzleSales?.[0]?.cashAmount || 0;
+      const card2 = shift2.nozzleSales?.[0]?.cardAmount || 0;
+      const cash2 = shift2.nozzleSales?.[0]?.cashAmount || 0;
+
+      combined.totalCard = card1 + card2;
+      combined.totalCash = cash1 + cash2;
+
+      const salesMap = new Map<string, any>();
+
+      [shift1.nozzleSales, shift2.nozzleSales].forEach(salesList => {
+        salesList?.forEach((sale: any) => {
+          const key = sale.nozzleId;
+          const existing = salesMap.get(key);
+
+          if (existing) {
+            existing.quantityLiters += sale.quantityLiters;
+            existing.totalRevenue += (sale.quantityLiters * sale.pricePerLiter);
+          } else {
+            salesMap.set(key, {
+              ...sale,
+              totalRevenue: (sale.quantityLiters * sale.pricePerLiter),
+            });
+          }
+        });
+      });
+
+      combined.nozzleSales = Array.from(salesMap.values()).map(item => ({
+        ...item,
+        pricePerLiter: item.quantityLiters > 0 ? (item.totalRevenue / item.quantityLiters) : item.pricePerLiter
+      }));
+
+      combined.totalRevenue = combined.nozzleSales.reduce((sum, item) => sum + item.totalRevenue, 0);
+
+      setCombinedShiftData(combined);
+      setShowCombinedModal(true);
+    } catch (error) {
+      console.error('Failed to combine shifts', error);
+      alert('Failed to combine shift data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrintCombined = () => {
+    if (!combinedShiftData) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Combined Shift Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { color: #333; border-bottom: 2px solid #f97316; padding-bottom: 10px; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+          .info-item { margin-bottom: 10px; }
+          .info-label { font-weight: bold; color: #666; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+          th { background-color: #f97316; color: white; }
+          .total-row { background-color: #f3f4f6; font-weight: bold; }
+          @media print { button { display: none; } }
+        </style>
+      </head>
+      <body>
+        <h1>Combined Shift Report</h1>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Period:</div>
+            <div>${new Date(combinedShiftData.shifts[0].createdAt).toLocaleString()} - ${new Date(combinedShiftData.shifts[1].createdAt).toLocaleString()}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Included Shifts:</div>
+            <div>${combinedShiftData.shifts.map((s: any) => s.shiftType).join(' + ')}</div>
+          </div>
+        </div>
+
+        <h2>Aggregated Sales</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nozzle</th>
+              <th>Fuel Type</th>
+              <th>Avg Price/L</th>
+              <th>Total Quantity (L)</th>
+              <th>Total Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${combinedShiftData.nozzleSales.map((sale: any) => `
+              <tr>
+                <td>${sale.nozzle?.name || '-'}</td>
+                <td>${(sale.nozzle?.fuelType || '').replace('_', ' ')}</td>
+                <td>${(sale.pricePerLiter || 0).toFixed(2)}</td>
+                <td>${(sale.quantityLiters || 0).toFixed(2)}</td>
+                <td>${(sale.totalRevenue).toFixed(2)} SAR</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="4" style="text-align: right;">Total Revenue:</td>
+              <td>${combinedShiftData.totalRevenue.toFixed(2)} SAR</td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="4" style="text-align: right;">Total Card Amount:</td>
+              <td>${combinedShiftData.totalCard.toFixed(2)} SAR</td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="4" style="text-align: right;">Total Cash Amount:</td>
+              <td>${combinedShiftData.totalCash.toFixed(2)} SAR</td>
+            </tr>
+          </tbody>
+        </table>
+        <script>window.onload = function() { window.print(); }</script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const handleQuantityChange = (saleId: string, quantity: string) => {
@@ -576,6 +741,17 @@ export const InventoryDashboard = () => {
             <p className="text-gray-600">Track fuel levels in tanks and nozzle meter readings</p>
           </div>
           <div className="flex gap-3">
+            {selectedShiftIds.length === 2 && (
+              <button
+                onClick={handleCombineShifts}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium animate-pulse"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Combine & View ({selectedShiftIds.length})
+              </button>
+            )}
             {canManageStation && (
               <button
                 onClick={() => setShowTankerModal(true)}
@@ -694,6 +870,7 @@ export const InventoryDashboard = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">Select</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift End Time</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -702,7 +879,15 @@ export const InventoryDashboard = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {previousShifts.map((shift) => (
-                  <tr key={shift.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={shift.id} className={`hover:bg-gray-50 transition-colors ${selectedShiftIds.includes(shift.id) ? 'bg-blue-50' : ''}`}>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedShiftIds.includes(shift.id)}
+                        onChange={() => handleToggleShiftSelection(shift.id)}
+                        className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{shift.shiftType}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700">
                       {shift.createdAt ? new Date(shift.createdAt).toLocaleString() : (shift.startTime ? new Date(shift.startTime).toLocaleString() : '-')}
@@ -1262,6 +1447,89 @@ export const InventoryDashboard = () => {
                   </div>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Combined Shift Details Modal */}
+      {showCombinedModal && combinedShiftData && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full border border-gray-200 h-[90vh] flex flex-col">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Combined Shift Report</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Aggregated view of {combinedShiftData.shifts.length} shifts
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handlePrintCombined}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  Print Report
+                </button>
+                <button
+                  onClick={() => setShowCombinedModal(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-500 mb-1">Period From</div>
+                  <div className="font-semibold text-gray-900">{new Date(combinedShiftData.shifts[0].createdAt).toLocaleString()}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-500 mb-1">Period To</div>
+                  <div className="font-semibold text-gray-900">{new Date(combinedShiftData.shifts[combinedShiftData.shifts.length - 1].createdAt).toLocaleString()}</div>
+                </div>
+              </div>
+
+              <h4 className="font-semibold text-gray-900 mb-4">Aggregated Sales</h4>
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nozzle</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fuel Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Qty (L)</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {combinedShiftData.nozzleSales.map((sale: any, idx: number) => (
+                      <tr key={`${sale.nozzleId}-${idx}`}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.nozzle?.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getFuelTypeLabel(sale.nozzle?.fuelType)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.quantityLiters.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sale.totalRevenue.toFixed(2)} SAR</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-gray-50 font-bold">
+                      <td colSpan={3} className="px-6 py-4 text-right text-gray-900">Total Revenue:</td>
+                      <td className="px-6 py-4 text-gray-900">{combinedShiftData.totalRevenue.toFixed(2)} SAR</td>
+                    </tr>
+                    <tr className="bg-blue-50/50 font-bold">
+                      <td colSpan={3} className="px-6 py-4 text-right text-indigo-900">Total Card Amount:</td>
+                      <td className="px-6 py-4 text-indigo-900">{combinedShiftData.totalCard.toFixed(2)} SAR</td>
+                    </tr>
+                    <tr className="bg-green-50/50 font-bold">
+                      <td colSpan={3} className="px-6 py-4 text-right text-green-900">Total Cash Amount:</td>
+                      <td className="px-6 py-4 text-green-900">{combinedShiftData.totalCash.toFixed(2)} SAR</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
