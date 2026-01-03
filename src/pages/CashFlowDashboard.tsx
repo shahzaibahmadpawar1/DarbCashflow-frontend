@@ -29,38 +29,14 @@ interface CashTransaction {
   };
 }
 
-interface Station {
-  id: string;
-  name: string;
-}
-
 export const CashFlowDashboard = () => {
   const { isSM, isAM } = useAuth();
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
-  const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showEntryForm, setShowEntryForm] = useState(false);
-  const [formData, setFormData] = useState({
-    stationId: '',
-    litersSold: '',
-    ratePerLiter: '',
-    cardPayments: '',
-    bankDeposit: '',
-  });
 
   useEffect(() => {
     loadTransactions();
-    loadStations();
   }, []);
-
-  const loadStations = async () => {
-    try {
-      const res = await api.get('/api/stations');
-      setStations(res.data.stations);
-    } catch (error) {
-      console.error('Failed to load stations', error);
-    }
-  };
 
   const loadTransactions = async () => {
     try {
@@ -73,29 +49,6 @@ export const CashFlowDashboard = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await api.post('/api/cash/transactions', {
-        stationId: formData.stationId,
-        litersSold: parseFloat(formData.litersSold),
-        ratePerLiter: parseFloat(formData.ratePerLiter),
-        cardPayments: parseFloat(formData.cardPayments || '0'),
-        bankDeposit: parseFloat(formData.bankDeposit || '0'),
-      });
-      setShowEntryForm(false);
-      setFormData({
-        stationId: '',
-        litersSold: '',
-        ratePerLiter: '',
-        cardPayments: '',
-        bankDeposit: '',
-      });
-      loadTransactions();
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to create transaction');
-    }
-  };
 
   const handleTransfer = async (transactionId: string) => {
     try {
@@ -149,102 +102,8 @@ export const CashFlowDashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Cash Flow Dashboard</h1>
             <p className="text-gray-600">Track revenue and cash movement from station to bank</p>
           </div>
-          {isSM && (
-            <button
-              onClick={() => setShowEntryForm(!showEntryForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              {showEntryForm ? 'Cancel' : 'New Transaction'}
-            </button>
-          )}
         </div>
       </div>
-
-      {showEntryForm && isSM && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">Enter Cash Transaction</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Station</label>
-                <select
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  value={formData.stationId}
-                  onChange={(e) => setFormData({ ...formData, stationId: e.target.value })}
-                >
-                  <option value="">Select Station</option>
-                  {stations.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Liters Sold</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  value={formData.litersSold}
-                  onChange={(e) => setFormData({ ...formData, litersSold: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Rate per Liter</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  value={formData.ratePerLiter}
-                  onChange={(e) => setFormData({ ...formData, ratePerLiter: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Card Payments</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  value={formData.cardPayments}
-                  onChange={(e) => setFormData({ ...formData, cardPayments: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Bank Deposit</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  value={formData.bankDeposit}
-                  onChange={(e) => setFormData({ ...formData, bankDeposit: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 pt-4">
-              <button
-                type="submit"
-                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
-              >
-                Submit
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowEntryForm(false)}
-                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {/* Transactions Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -293,19 +152,19 @@ export const CashFlowDashboard = () => {
                       <StatusBadge status={tx.status} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {tx.cashTransfer?.createdAt 
+                      {tx.cashTransfer?.createdAt
                         ? new Date(tx.cashTransfer.createdAt).toLocaleString()
                         : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {tx.status === 'WITH_AM' || tx.status === 'DEPOSITED'
-                        ? (tx.cashTransfer?.updatedAt 
-                            ? new Date(tx.cashTransfer.updatedAt).toLocaleString()
-                            : '-')
+                        ? (tx.cashTransfer?.updatedAt
+                          ? new Date(tx.cashTransfer.updatedAt).toLocaleString()
+                          : '-')
                         : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {tx.cashTransfer?.depositedAt 
+                      {tx.cashTransfer?.depositedAt
                         ? new Date(tx.cashTransfer.depositedAt).toLocaleString()
                         : '-'}
                     </td>

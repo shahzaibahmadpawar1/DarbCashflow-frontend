@@ -40,12 +40,20 @@ interface FuelPrice {
   pricePerLiter: number;
 }
 
+interface Tank {
+  id: string;
+  fuelType: string;
+  capacity: number;
+  currentLevel: number;
+}
+
 export const InventoryDashboard = () => {
   const { user, canManageStation, isAdmin } = useAuth();
   const [stationId, setStationId] = useState<string>('');
   const [currentShift, setCurrentShift] = useState<Shift | null>(null);
   const [nozzleSales, setNozzleSales] = useState<NozzleSale[]>([]);
   const [fuelPrices, setFuelPrices] = useState<FuelPrice[]>([]);
+  const [tanks, setTanks] = useState<Tank[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -61,11 +69,22 @@ export const InventoryDashboard = () => {
   const [shiftType, setShiftType] = useState<'DAY' | 'NIGHT'>('DAY');
   const [creatingShift, setCreatingShift] = useState(false);
   const [paymentValidationError, setPaymentValidationError] = useState<string>('');
-  
+
   // Previous shifts
   const [previousShifts, setPreviousShifts] = useState<Shift[]>([]);
   const [selectedShiftDetails, setSelectedShiftDetails] = useState<Shift | null>(null);
   const [showShiftDetailsModal, setShowShiftDetailsModal] = useState(false);
+
+  // Tanker delivery modal
+  const [showTankerModal, setShowTankerModal] = useState(false);
+  const [submittingTanker, setSubmittingTanker] = useState(false);
+  const [tankerFormData, setTankerFormData] = useState({
+    tankId: '',
+    litersDelivered: '',
+    deliveryDate: new Date().toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
+    aramcoTicket: '',
+    notes: '',
+  });
 
   useEffect(() => {
     if (user?.stationId) {
@@ -78,18 +97,21 @@ export const InventoryDashboard = () => {
 
   const loadData = async (sid: string) => {
     try {
-      const [shiftRes, pricesRes, allShiftsRes] = await Promise.all([
+      const [shiftRes, pricesRes, allShiftsRes, tanksRes] = await Promise.all([
         api.get(`/api/inventory/shifts/stations/${sid}/current`),
         api.get(`/api/fuel/prices/station/${sid}`),
         api.get(`/api/inventory/shifts/stations/${sid}/all`),
+        api.get(`/api/inventory/stations/${sid}/tanks`),
       ]);
 
       console.log('Shift data:', shiftRes.data);
       console.log('Prices data:', pricesRes.data);
+      console.log('Tanks data:', tanksRes.data);
 
       setCurrentShift(shiftRes.data.shift);
       setFuelPrices(pricesRes.data.prices || []);
-      
+      setTanks(tanksRes.data.tanks || []);
+
       // Set previous shifts (exclude current shift if it exists)
       const allShifts = allShiftsRes.data.shifts || [];
       const currentShiftId = shiftRes.data.shift?.id;
@@ -113,7 +135,7 @@ export const InventoryDashboard = () => {
       setLoading(false);
     }
   };
-  
+
   const handleViewShiftDetails = async (shiftId: string) => {
     try {
       const res = await api.get(`/api/inventory/shifts/${shiftId}/details`);
@@ -121,6 +143,132 @@ export const InventoryDashboard = () => {
       setShowShiftDetailsModal(true);
     } catch (error: any) {
       alert(error.response?.data?.error || 'Failed to load shift details');
+    }
+  };
+
+  const handlePrintShift = async (shiftId: string) => {
+    try {
+      const res = await api.get(`/api/inventory/shifts/${shiftId}/details`);
+      const shift = res.data.shift;
+
+      // Create print window
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to print shift details');
+        return;
+      }
+
+      // Calculate totals
+      const totalAmount = shift.nozzleSales?.reduce((sum: number, sale: any) =>
+        sum + ((sale.quantityLiters || 0) * (sale.pricePerLiter || 0)), 0) || 0;
+      const totalCard = shift.nozzleSales?.reduce((sum: number, sale: any) =>
+        sum + (sale.cardAmount || 0), 0) || 0;
+      const totalCash = shift.nozzleSales?.reduce((sum: number, sale: any) =>
+        sum + (sale.cashAmount || 0), 0) || 0;
+
+      // Generate print HTML
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Shift Details - ${shift.shiftType}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #333; border-bottom: 2px solid #f97316; padding-bottom: 10px; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+            .info-item { margin-bottom: 10px; }
+            .info-label { font-weight: bold; color: #666; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #f97316; color: white; }
+            .total-row { background-color: #f3f4f6; font-weight: bold; }
+            .status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; background-color: #fee2e2; color: #991b1b; font-size: 12px; }
+            @media print { button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <h1>Shift Details</h1>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">Shift Type:</div>
+              <div>${shift.shiftType}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Status:</div>
+              <span class="status-badge">Locked</span>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Shift End Time:</div>
+              <div>${shift.endTime ? new Date(shift.endTime).toLocaleString() : '-'}</div>
+            </div>
+          </div>
+
+          <h2>Nozzle Sales</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Nozzle</th>
+                <th>Fuel Type</th>
+                <th>Price/L</th>
+                <th>Quantity (L)</th>
+                <th>Total Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${shift.nozzleSales?.map((sale: any) => {
+        const total = (sale.quantityLiters || 0) * (sale.pricePerLiter || 0);
+        return `
+                  <tr>
+                    <td>${sale.nozzle?.name || '-'}</td>
+                    <td>${getFuelTypeLabel(sale.nozzle?.fuelType || '')}</td>
+                    <td>${(sale.pricePerLiter || 0).toFixed(2)}</td>
+                    <td>${(sale.quantityLiters || 0).toFixed(2)}</td>
+                    <td>${total.toFixed(2)} SAR</td>
+                  </tr>
+                `;
+      }).join('') || '<tr><td colspan="5">No sales data</td></tr>'}
+              <tr class="total-row">
+                <td colspan="4" style="text-align: right;">Total:</td>
+                <td>${totalAmount.toFixed(2)} SAR</td>
+              </tr>
+              <tr class="total-row">
+                <td colspan="4" style="text-align: right;">Card Amount:</td>
+                <td>${totalCard.toFixed(2)} SAR</td>
+              </tr>
+              <tr class="total-row">
+                <td colspan="4" style="text-align: right;">Cash Amount:</td>
+                <td>${totalCash.toFixed(2)} SAR</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to load shift details');
+    }
+  };
+
+  const handleDeleteShift = async (shiftId: string) => {
+    if (!window.confirm('Are you sure you want to delete this shift? This action cannot be undone and will also delete all associated sales data.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/api/inventory/shifts/${shiftId}`);
+      alert('Shift deleted successfully');
+
+      // Reload shifts
+      if (stationId) {
+        loadData(stationId);
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to delete shift');
     }
   };
 
@@ -153,9 +301,9 @@ export const InventoryDashboard = () => {
     if (!currentShift) return;
 
     const numValue = parseFloat(value) || 0;
-    
+
     // Calculate total amount from all nozzles
-    const totalAmount = nozzleSales.reduce((sum, sale) => 
+    const totalAmount = nozzleSales.reduce((sum, sale) =>
       sum + (sale.quantityLiters * sale.pricePerLiter), 0
     );
 
@@ -257,6 +405,44 @@ export const InventoryDashboard = () => {
     }
   };
 
+  const handleAddTankerDelivery = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!tankerFormData.tankId || !tankerFormData.litersDelivered) {
+      alert('Please select a tank and enter liters delivered');
+      return;
+    }
+
+    try {
+      setSubmittingTanker(true);
+      await api.post(`/api/inventory/tanks/${tankerFormData.tankId}/deliveries`, {
+        litersDelivered: parseFloat(tankerFormData.litersDelivered),
+        deliveryDate: new Date(tankerFormData.deliveryDate).toISOString(),
+        aramcoTicket: tankerFormData.aramcoTicket,
+        notes: tankerFormData.notes,
+      });
+
+      alert('Tanker delivery recorded successfully!');
+      setShowTankerModal(false);
+      setTankerFormData({
+        tankId: '',
+        litersDelivered: '',
+        deliveryDate: new Date().toISOString().slice(0, 16),
+        aramcoTicket: '',
+        notes: '',
+      });
+
+      // Reload data to update tank levels
+      if (stationId) {
+        loadData(stationId);
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to record tanker delivery');
+    } finally {
+      setSubmittingTanker(false);
+    }
+  };
+
   const getFuelTypeLabel = (fuelType: string) => {
     switch (fuelType) {
       case '91_GASOLINE': return '91 Gasoline';
@@ -296,17 +482,30 @@ export const InventoryDashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Fuel Sales Dashboard</h1>
             <p className="text-gray-600">Track fuel levels in tanks and nozzle meter readings</p>
           </div>
-          {isAdmin && (
-            <button
-              onClick={() => setShowPriceForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Set Fuel Prices
-            </button>
-          )}
+          <div className="flex gap-3">
+            {canManageStation && (
+              <button
+                onClick={() => setShowTankerModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Tanker Delivery
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => setShowPriceForm(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Set Fuel Prices
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -320,6 +519,56 @@ export const InventoryDashboard = () => {
               <p className="text-2xl font-bold text-primary">{price.pricePerLiter.toFixed(2)} SAR/L</p>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Tank Details Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-xl font-semibold mb-4 text-gray-900">Fuel Tank Levels</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {tanks.map((tank) => {
+            // Add null checks with default values
+            const currentLevel = tank.currentLevel ?? 0;
+            const isLow = currentLevel < 1000; // Low if less than 1000 liters
+            const isMedium = currentLevel >= 1000 && currentLevel < 5000; // Medium between 1000-5000
+
+            return (
+              <div key={tank.id} className="border border-gray-200 rounded-lg p-5 bg-gradient-to-br from-gray-50 to-white">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-lg text-gray-900">{getFuelTypeLabel(tank.fuelType)}</h3>
+                  <div className={`w-3 h-3 rounded-full ${isLow ? 'bg-red-500' : isMedium ? 'bg-yellow-500' : 'bg-green-500'
+                    }`} title={isLow ? 'Low' : isMedium ? 'Medium' : 'Good'}></div>
+                </div>
+
+                {/* Current Level Display */}
+                <div className="mb-3">
+                  <div className="text-center py-6 bg-gray-100 rounded-lg border-2 border-gray-200">
+                    <p className="text-sm text-gray-600 mb-1">Current Fuel Level</p>
+                    <p className="text-4xl font-bold text-primary">{currentLevel.toFixed(2)}</p>
+                    <p className="text-sm text-gray-500 mt-1">Liters</p>
+                  </div>
+                </div>
+
+                {/* Low Level Warning */}
+                {isLow && (
+                  <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-xs text-red-800 font-medium flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      Low fuel level!
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {tanks.length === 0 && (
+            <div className="col-span-3 text-center py-8 text-gray-500">
+              <p>No tank data available. Please contact administrator.</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -353,8 +602,7 @@ export const InventoryDashboard = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift End Time</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -364,29 +612,42 @@ export const InventoryDashboard = () => {
                   <tr key={shift.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{shift.shiftType}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                      {new Date(shift.startTime || '').toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">
                       {shift.endTime ? new Date(shift.endTime).toLocaleString() : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        shift.locked
-                          ? 'bg-red-100 text-red-800'
-                          : shift.status === 'OPEN'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {shift.locked ? 'Locked' : shift.status}
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        Locked
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleViewShiftDetails(shift.id)}
-                        className="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
-                      >
-                        Details
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleViewShiftDetails(shift.id)}
+                          className="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                        >
+                          Details
+                        </button>
+                        <button
+                          onClick={() => handlePrintShift(shift.id)}
+                          className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                          </svg>
+                          Print
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteShift(shift.id)}
+                            className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center gap-1"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -408,11 +669,10 @@ export const InventoryDashboard = () => {
                 Started: {new Date(currentShift.startTime || new Date()).toLocaleString()}
               </p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
-              currentShift.locked
-                ? 'bg-red-50 text-red-700 border-red-200'
-                : 'bg-green-50 text-green-700 border-green-200'
-            }`}>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${currentShift.locked
+              ? 'bg-red-50 text-red-700 border-red-200'
+              : 'bg-green-50 text-green-700 border-green-200'
+              }`}>
               {currentShift.locked ? 'Locked' : 'Open'}
             </span>
           </div>
@@ -432,7 +692,7 @@ export const InventoryDashboard = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {nozzleSales.map((sale) => {
                   const totalAmount = parseFloat(calculateTotal(sale.quantityLiters, sale.pricePerLiter));
-                  
+
                   return (
                     <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{sale.nozzle.name}</td>
@@ -503,9 +763,8 @@ export const InventoryDashboard = () => {
                           handlePaymentChange('cardAmount', value || '0');
                         }
                       }}
-                      className={`w-full px-4 py-3 text-xl border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-gray-900 ${
-                        paymentValidationError ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      }`}
+                      className={`w-full px-4 py-3 text-xl border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-gray-900 ${paymentValidationError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                        }`}
                       placeholder="0.00"
                     />
                   )}
@@ -528,9 +787,8 @@ export const InventoryDashboard = () => {
                           handlePaymentChange('cashAmount', value || '0');
                         }
                       }}
-                      className={`w-full px-4 py-3 text-xl border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-gray-900 ${
-                        paymentValidationError ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      }`}
+                      className={`w-full px-4 py-3 text-xl border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-gray-900 ${paymentValidationError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                        }`}
                       placeholder="0.00"
                     />
                   )}
@@ -649,7 +907,7 @@ export const InventoryDashboard = () => {
                   </svg>
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -658,22 +916,12 @@ export const InventoryDashboard = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      selectedShiftDetails.locked
-                        ? 'bg-red-100 text-red-800'
-                        : selectedShiftDetails.status === 'OPEN'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {selectedShiftDetails.locked ? 'Locked' : selectedShiftDetails.status}
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      Locked
                     </span>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                    <p className="text-gray-900">{new Date(selectedShiftDetails.startTime || '').toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Shift End Time</label>
                     <p className="text-gray-900">{selectedShiftDetails.endTime ? new Date(selectedShiftDetails.endTime).toLocaleString() : '-'}</p>
                   </div>
                 </div>
@@ -690,8 +938,6 @@ export const InventoryDashboard = () => {
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price/L</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity (L)</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Card Amount</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cash Amount</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -704,27 +950,31 @@ export const InventoryDashboard = () => {
                                 <td className="px-4 py-2 text-sm text-gray-700">{(sale.pricePerLiter || 0).toFixed(2)}</td>
                                 <td className="px-4 py-2 text-sm text-gray-900">{(sale.quantityLiters || 0).toFixed(2)}</td>
                                 <td className="px-4 py-2 text-sm font-bold text-primary">{totalAmount.toFixed(2)} SAR</td>
-                                <td className="px-4 py-2 text-sm text-gray-700">{(sale.cardAmount || 0).toFixed(2)} SAR</td>
-                                <td className="px-4 py-2 text-sm text-gray-700">{(sale.cashAmount || 0).toFixed(2)} SAR</td>
                               </tr>
                             );
                           })}
                         </tbody>
                         <tfoot className="bg-gray-50">
                           <tr>
-                            <td colSpan={4} className="px-4 py-2 text-sm font-semibold text-gray-900 text-right">Total:</td>
-                            <td className="px-4 py-2 text-sm font-bold text-primary">
-                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) => 
+                            <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">Total:</td>
+                            <td className="px-4 py-3 text-sm font-bold text-primary">
+                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) =>
                                 sum + ((sale.quantityLiters || 0) * (sale.pricePerLiter || 0)), 0
                               ).toFixed(2)} SAR
                             </td>
+                          </tr>
+                          <tr>
+                            <td colSpan={4} className="px-4 py-2 text-sm font-semibold text-gray-900 text-right">Card Amount:</td>
                             <td className="px-4 py-2 text-sm font-semibold text-gray-900">
-                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) => 
+                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) =>
                                 sum + (sale.cardAmount || 0), 0
                               ).toFixed(2)} SAR
                             </td>
+                          </tr>
+                          <tr>
+                            <td colSpan={4} className="px-4 py-2 text-sm font-semibold text-gray-900 text-right">Cash Amount:</td>
                             <td className="px-4 py-2 text-sm font-semibold text-gray-900">
-                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) => 
+                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) =>
                                 sum + (sale.cashAmount || 0), 0
                               ).toFixed(2)} SAR
                             </td>
@@ -807,6 +1057,116 @@ export const InventoryDashboard = () => {
                   >
                     Cancel
                   </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tanker Delivery Modal */}
+      {showTankerModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-gray-200">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Add Tanker Delivery</h3>
+                <button
+                  onClick={() => setShowTankerModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <form onSubmit={handleAddTankerDelivery}>
+                <div className="space-y-4">
+                  {/* Tank Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Tank *</label>
+                    <select
+                      value={tankerFormData.tankId}
+                      onChange={(e) => setTankerFormData({ ...tankerFormData, tankId: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      required
+                    >
+                      <option value="">Choose a tank...</option>
+                      {tanks.map((tank) => (
+                        <option key={tank.id} value={tank.id}>
+                          {getFuelTypeLabel(tank.fuelType)} - Current: {(tank.currentLevel ?? 0).toFixed(2)} L
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Liters Delivered */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Liters Delivered *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={tankerFormData.litersDelivered}
+                      onChange={(e) => setTankerFormData({ ...tankerFormData, litersDelivered: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Enter liters delivered"
+                      required
+                    />
+                  </div>
+
+                  {/* Delivery Date */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Date & Time *</label>
+                    <input
+                      type="datetime-local"
+                      value={tankerFormData.deliveryDate}
+                      onChange={(e) => setTankerFormData({ ...tankerFormData, deliveryDate: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      required
+                    />
+                  </div>
+
+                  {/* Aramco Ticket */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Aramco Ticket Number</label>
+                    <input
+                      type="text"
+                      value={tankerFormData.aramcoTicket}
+                      onChange={(e) => setTankerFormData({ ...tankerFormData, aramcoTicket: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Enter Aramco ticket number"
+                    />
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                    <textarea
+                      value={tankerFormData.notes}
+                      onChange={(e) => setTankerFormData({ ...tankerFormData, notes: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Add any additional notes..."
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      disabled={submittingTanker}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {submittingTanker ? 'Recording...' : 'Record Delivery'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowTankerModal(false)}
+                      className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
