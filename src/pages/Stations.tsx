@@ -23,6 +23,11 @@ export const Stations = () => {
         address: '',
         stationType: 'OPERATIONAL',
     });
+    const [newStationPrices, setNewStationPrices] = useState<FuelPrice[]>([
+        { fuelType: '91_GASOLINE', pricePerLiter: '' },
+        { fuelType: '95_GASOLINE', pricePerLiter: '' },
+        { fuelType: 'DIESEL', pricePerLiter: '' },
+    ]);
 
     // Fuel pricing state
     const [showPriceModal, setShowPriceModal] = useState(false);
@@ -69,9 +74,34 @@ export const Stations = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/api/stations', formData);
+            // Create the station first
+            const stationRes = await api.post('/api/stations', formData);
+            const newStationId = stationRes.data.station?.id;
+
+            // If fuel prices are provided, create them
+            if (newStationId) {
+                for (const price of newStationPrices) {
+                    if (price.pricePerLiter && price.pricePerLiter.trim() !== '' && parseFloat(price.pricePerLiter) > 0) {
+                        try {
+                            await api.post('/api/fuel/prices', {
+                                stationId: newStationId,
+                                fuelType: price.fuelType,
+                                pricePerLiter: parseFloat(price.pricePerLiter),
+                            });
+                        } catch (priceError) {
+                            console.error(`Failed to set price for ${price.fuelType}:`, priceError);
+                        }
+                    }
+                }
+            }
+
             setShowForm(false);
             setFormData({ name: '', address: '', stationType: 'OPERATIONAL' });
+            setNewStationPrices([
+                { fuelType: '91_GASOLINE', pricePerLiter: '' },
+                { fuelType: '95_GASOLINE', pricePerLiter: '' },
+                { fuelType: 'DIESEL', pricePerLiter: '' },
+            ]);
             loadStations();
             alert('Station created successfully');
         } catch (error: any) {
@@ -93,6 +123,12 @@ export const Stations = () => {
         const updated = [...fuelPrices];
         updated[index].pricePerLiter = value;
         setFuelPrices(updated);
+    };
+
+    const handleNewStationPriceChange = (index: number, value: string) => {
+        const updated = [...newStationPrices];
+        updated[index].pricePerLiter = value;
+        setNewStationPrices(updated);
     };
 
     const handleSubmitPrices = async (e: React.FormEvent) => {
@@ -241,7 +277,32 @@ export const Stations = () => {
                                 </select>
                             </div>
                         </div>
-                        <div className="flex gap-3">
+
+                        {/* Optional Fuel Rates Section */}
+                        <div className="border-t border-gray-200 pt-4 mt-4">
+                            <h3 className="text-sm font-medium text-gray-700 mb-3">Fuel Rates (Optional)</h3>
+                            <p className="text-xs text-gray-500 mb-4">You can set fuel rates now or add them later. If not set, default rates will be 0.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {newStationPrices.map((price, index) => (
+                                    <div key={price.fuelType}>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            {getFuelTypeLabel(price.fuelType)} (SAR/Liter)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                            placeholder="0.00"
+                                            value={price.pricePerLiter}
+                                            onChange={(e) => handleNewStationPriceChange(index, e.target.value)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
                             <button
                                 type="submit"
                                 className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
@@ -250,7 +311,15 @@ export const Stations = () => {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setShowForm(false)}
+                                onClick={() => {
+                                    setShowForm(false);
+                                    setFormData({ name: '', address: '', stationType: 'OPERATIONAL' });
+                                    setNewStationPrices([
+                                        { fuelType: '91_GASOLINE', pricePerLiter: '' },
+                                        { fuelType: '95_GASOLINE', pricePerLiter: '' },
+                                        { fuelType: 'DIESEL', pricePerLiter: '' },
+                                    ]);
+                                }}
                                 className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                             >
                                 Cancel

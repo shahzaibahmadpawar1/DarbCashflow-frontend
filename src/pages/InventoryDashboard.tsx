@@ -29,6 +29,7 @@ interface Shift {
   shiftType: string;
   status: string;
   locked: boolean;
+  startTime?: string;
 }
 
 interface FuelPrice {
@@ -52,6 +53,12 @@ export const InventoryDashboard = () => {
     fuelType: '91_GASOLINE',
     pricePerLiter: '',
   });
+
+  // Shift creation
+  const [showCreateShiftModal, setShowCreateShiftModal] = useState(false);
+  const [shiftType, setShiftType] = useState<'DAY' | 'NIGHT'>('DAY');
+  const [creatingShift, setCreatingShift] = useState(false);
+  const [paymentValidationError, setPaymentValidationError] = useState<string>('');
 
   useEffect(() => {
     if (user?.stationId) {
@@ -95,6 +102,9 @@ export const InventoryDashboard = () => {
   };
 
   const handleQuantityChange = (saleId: string, quantity: string) => {
+    // Clear validation error when quantity changes
+    setPaymentValidationError('');
+
     // Update local state immediately for responsive input
     setNozzleSales(prev => prev.map(sale =>
       sale.id === saleId
@@ -116,26 +126,69 @@ export const InventoryDashboard = () => {
     return () => clearTimeout(timeoutId);
   };
 
-  const handlePaymentChange = (saleId: string, field: 'cardAmount' | 'cashAmount', value: string) => {
-    // Update local state immediately
-    setNozzleSales(prev => prev.map(sale =>
-      sale.id === saleId
-        ? { ...sale, [field]: parseFloat(value) || 0 }
-        : sale
-    ));
+  const handlePaymentChange = async (field: 'cardAmount' | 'cashAmount', value: string) => {
+    if (!currentShift) return;
 
-    // Debounce API call
-    const timeoutId = setTimeout(async () => {
-      try {
-        await api.put(`/api/fuel/sales/${saleId}`, {
-          [field]: parseFloat(value) || 0,
-        });
-      } catch (error: any) {
-        console.error('Failed to update payment:', error);
+    const numValue = parseFloat(value) || 0;
+    
+    // Calculate total amount from all nozzles
+    const totalAmount = nozzleSales.reduce((sum, sale) => 
+      sum + (sale.quantityLiters * sale.pricePerLiter), 0
+    );
+
+    // Get current card and cash amounts (from first sale, as they should be the same for all)
+    const currentCardAmount = field === 'cardAmount' ? numValue : (nozzleSales[0]?.cardAmount || 0);
+    const currentCashAmount = field === 'cashAmount' ? numValue : (nozzleSales[0]?.cashAmount || 0);
+    const sum = currentCardAmount + currentCashAmount;
+
+    // Validate that card + cash doesn't exceed total
+    if (sum > totalAmount && totalAmount > 0) {
+      setPaymentValidationError(
+        `Card + Cash amount (${sum.toFixed(2)} SAR) exceeds Total Amount (${totalAmount.toFixed(2)} SAR) by ${(sum - totalAmount).toFixed(2)} SAR`
+      );
+      return;
+    } else {
+      setPaymentValidationError('');
+    }
+
+    // Update local state immediately (update all sales with same value)
+    setNozzleSales(prev => prev.map(sale => ({
+      ...sale,
+      [field]: numValue
+    })));
+
+    // Update all nozzle sales with the same card/cash amount
+    try {
+      await api.put(`/api/fuel/sales/shift/${currentShift.id}/payments`, {
+        [field]: numValue,
+      });
+    } catch (error: any) {
+      console.error('Failed to update payment:', error);
+      alert(error.response?.data?.error || 'Failed to update payment');
+      // Reload data on error
+      if (stationId) {
+        loadData(stationId);
       }
-    }, 500);
+    }
+  };
 
-    return () => clearTimeout(timeoutId);
+  const handleCreateShift = async () => {
+    if (!stationId) return;
+
+    try {
+      setCreatingShift(true);
+      await api.post(`/api/inventory/shifts/stations/${stationId}/create`, {
+        shiftType,
+      });
+      alert('Shift created successfully!');
+      setShowCreateShiftModal(false);
+      setShiftType('DAY');
+      loadData(stationId);
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to create shift');
+    } finally {
+      setCreatingShift(false);
+    }
   };
 
   const handleSubmitSales = async () => {
@@ -247,13 +300,39 @@ export const InventoryDashboard = () => {
         </div>
       </div>
 
+      {/* Create Shift Button (when no shift exists) */}
+      {!currentShift && canManageStation && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="text-center py-8">
+            <div className="mb-4">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Active Shift</h3>
+            <p className="text-gray-600 mb-6">Create a new shift to start recording fuel sales</p>
+            <button
+              onClick={() => setShowCreateShiftModal(true)}
+              className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+            >
+              Create Shift
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Shift Info */}
       {currentShift && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Current Shift: {currentShift.shiftType}
-            </h2>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Current Shift: {currentShift.shiftType}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Started: {new Date(currentShift.startTime || new Date()).toLocaleString()}
+              </p>
+            </div>
             <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
               currentShift.locked
                 ? 'bg-red-50 text-red-700 border-red-200'
@@ -278,6 +357,7 @@ export const InventoryDashboard = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {nozzleSales.map((sale) => {
                   const totalAmount = parseFloat(calculateTotal(sale.quantityLiters, sale.pricePerLiter));
+                  
                   return (
                     <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{sale.nozzle.name}</td>
@@ -325,7 +405,7 @@ export const InventoryDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Total Amount */}
                 <div className="bg-white rounded-lg p-4 border-2 border-primary">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Total Amount</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Total Amount (All Nozzles)</label>
                   <div className="text-3xl font-bold text-primary">
                     {nozzleSales.reduce((sum, sale) => sum + (sale.quantityLiters * sale.pricePerLiter), 0).toFixed(2)} SAR
                   </div>
@@ -336,19 +416,21 @@ export const InventoryDashboard = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Card Amount (SAR)</label>
                   {currentShift.locked ? (
                     <div className="text-2xl font-semibold text-gray-900">
-                      {nozzleSales.reduce((sum, sale) => sum + (sale.cardAmount || 0), 0).toFixed(2)}
+                      {(nozzleSales[0]?.cardAmount || 0).toFixed(2)}
                     </div>
                   ) : (
                     <input
                       type="text"
-                      value={nozzleSales[0]?.cardAmount === 0 ? '' : String(nozzleSales[0]?.cardAmount || '')}
+                      value={(nozzleSales[0]?.cardAmount || 0) === 0 ? '' : String(nozzleSales[0]?.cardAmount || 0)}
                       onChange={(e) => {
                         const value = e.target.value;
                         if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          handlePaymentChange(nozzleSales[0].id, 'cardAmount', value || '0');
+                          handlePaymentChange('cardAmount', value || '0');
                         }
                       }}
-                      className="w-full px-4 py-3 text-xl border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary bg-white text-gray-900"
+                      className={`w-full px-4 py-3 text-xl border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-gray-900 ${
+                        paymentValidationError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
                       placeholder="0.00"
                     />
                   )}
@@ -359,24 +441,60 @@ export const InventoryDashboard = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Cash Amount (SAR)</label>
                   {currentShift.locked ? (
                     <div className="text-2xl font-semibold text-gray-900">
-                      {nozzleSales.reduce((sum, sale) => sum + (sale.cashAmount || 0), 0).toFixed(2)}
+                      {(nozzleSales[0]?.cashAmount || 0).toFixed(2)}
                     </div>
                   ) : (
                     <input
                       type="text"
-                      value={nozzleSales[0]?.cashAmount === 0 ? '' : String(nozzleSales[0]?.cashAmount || '')}
+                      value={(nozzleSales[0]?.cashAmount || 0) === 0 ? '' : String(nozzleSales[0]?.cashAmount || 0)}
                       onChange={(e) => {
                         const value = e.target.value;
                         if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          handlePaymentChange(nozzleSales[0].id, 'cashAmount', value || '0');
+                          handlePaymentChange('cashAmount', value || '0');
                         }
                       }}
-                      className="w-full px-4 py-3 text-xl border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary bg-white text-gray-900"
+                      className={`w-full px-4 py-3 text-xl border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-gray-900 ${
+                        paymentValidationError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
                       placeholder="0.00"
                     />
                   )}
                 </div>
               </div>
+              {!currentShift.locked && (() => {
+                const totalAmount = nozzleSales.reduce((sum, sale) => sum + (sale.quantityLiters * sale.pricePerLiter), 0);
+                const cardAmount = nozzleSales[0]?.cardAmount || 0;
+                const cashAmount = nozzleSales[0]?.cashAmount || 0;
+                const paymentSum = cardAmount + cashAmount;
+                const exceedsTotal = paymentSum > totalAmount && totalAmount > 0;
+                
+                return (
+                  <div className={`mt-4 p-3 rounded-lg border ${
+                    exceedsTotal || paymentValidationError
+                      ? 'bg-red-50 border-red-200' 
+                      : 'bg-blue-50 border-blue-200'
+                  }`}>
+                    <p className={`text-sm ${
+                      exceedsTotal || paymentValidationError ? 'text-red-800' : 'text-blue-800'
+                    }`}>
+                      {paymentValidationError ? (
+                        <><strong>Error:</strong> {paymentValidationError}</>
+                      ) : exceedsTotal ? (
+                        <>
+                          <strong>Warning:</strong> Card + Cash amount ({paymentSum.toFixed(2)} SAR) exceeds Total Amount ({totalAmount.toFixed(2)} SAR) by {(paymentSum - totalAmount).toFixed(2)} SAR
+                        </>
+                      ) : (
+                        <>
+                          <strong>Note:</strong> Card + Cash amount should not exceed Total Amount from all nozzles. 
+                          {totalAmount > 0 && (
+                            <> Remaining: {(totalAmount - paymentSum).toFixed(2)} SAR</>
+                          )}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -392,6 +510,70 @@ export const InventoryDashboard = () => {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Create Shift Modal */}
+      {showCreateShiftModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-gray-200">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Create New Shift</h3>
+                <button
+                  onClick={() => {
+                    setShowCreateShiftModal(false);
+                    setShiftType('DAY');
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Shift Type</label>
+                  <select
+                    value={shiftType}
+                    onChange={(e) => setShiftType(e.target.value as 'DAY' | 'NIGHT')}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="DAY">Day Shift</option>
+                    <option value="NIGHT">Night Shift</option>
+                  </select>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-600">
+                    <strong>Date & Time:</strong> {new Date().toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Automatically set based on current date and time
+                  </p>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={handleCreateShift}
+                    disabled={creatingShift}
+                    className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {creatingShift ? 'Creating...' : 'Create Shift'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateShiftModal(false);
+                      setShiftType('DAY');
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -459,3 +641,4 @@ export const InventoryDashboard = () => {
     </div>
   );
 };
+
