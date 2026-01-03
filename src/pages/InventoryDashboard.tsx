@@ -50,7 +50,7 @@ interface Tank {
 }
 
 export const InventoryDashboard = () => {
-  const { user, canManageStation, isAdmin } = useAuth();
+  const { user, canManageStation, isAdmin, isAM } = useAuth();
   const [stationId, setStationId] = useState<string>('');
   const [currentShift, setCurrentShift] = useState<Shift | null>(null);
   const [nozzleSales, setNozzleSales] = useState<NozzleSale[]>([]);
@@ -92,8 +92,8 @@ export const InventoryDashboard = () => {
   });
 
   useEffect(() => {
-    if (isAdmin) {
-      // Load station managers for admin
+    if (isAdmin || isAM) {
+      // Load station managers for admin or area manager
       loadStationManagers();
     } else if (user?.stationId) {
       setStationId(user.stationId);
@@ -101,7 +101,7 @@ export const InventoryDashboard = () => {
     } else {
       setLoading(false);
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, isAM]);
 
   const loadStationManagers = async () => {
     try {
@@ -495,7 +495,7 @@ export const InventoryDashboard = () => {
   }
 
   if (!stationId) {
-    if (isAdmin) {
+    if (isAdmin || isAM) {
       return (
         <div className="px-4 py-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -561,7 +561,7 @@ export const InventoryDashboard = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div>
-            {isAdmin && (
+            {(isAdmin || isAM) && (
               <button
                 onClick={handleBackToStationList}
                 className="flex items-center gap-1 text-gray-500 hover:text-primary mb-2 transition-colors text-sm font-medium"
