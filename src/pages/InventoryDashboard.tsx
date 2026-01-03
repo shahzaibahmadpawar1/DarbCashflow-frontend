@@ -193,10 +193,9 @@ export const InventoryDashboard = () => {
       // Calculate totals
       const totalAmount = shift.nozzleSales?.reduce((sum: number, sale: any) =>
         sum + ((sale.quantityLiters || 0) * (sale.pricePerLiter || 0)), 0) || 0;
-      const totalCard = shift.nozzleSales?.reduce((sum: number, sale: any) =>
-        sum + (sale.cardAmount || 0), 0) || 0;
-      const totalCash = shift.nozzleSales?.reduce((sum: number, sale: any) =>
-        sum + (sale.cashAmount || 0), 0) || 0;
+      // Taking first record for card/cash as they are shift-level values stored on each record
+      const totalCard = shift.nozzleSales?.[0]?.cardAmount || 0;
+      const totalCash = shift.nozzleSales?.[0]?.cashAmount || 0;
 
       // Generate print HTML
       printWindow.document.write(`
@@ -1060,17 +1059,13 @@ export const InventoryDashboard = () => {
                           <tr>
                             <td colSpan={4} className="px-4 py-2 text-sm font-semibold text-gray-900 text-right">Card Amount:</td>
                             <td className="px-4 py-2 text-sm font-semibold text-gray-900">
-                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) =>
-                                sum + (sale.cardAmount || 0), 0
-                              ).toFixed(2)} SAR
+                              {(selectedShiftDetails.nozzleSales?.[0]?.cardAmount || 0).toFixed(2)} SAR
                             </td>
                           </tr>
                           <tr>
                             <td colSpan={4} className="px-4 py-2 text-sm font-semibold text-gray-900 text-right">Cash Amount:</td>
                             <td className="px-4 py-2 text-sm font-semibold text-gray-900">
-                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) =>
-                                sum + (sale.cashAmount || 0), 0
-                              ).toFixed(2)} SAR
+                              {(selectedShiftDetails.nozzleSales?.[0]?.cashAmount || 0).toFixed(2)} SAR
                             </td>
                           </tr>
                         </tfoot>
