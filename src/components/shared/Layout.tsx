@@ -102,8 +102,8 @@ export const Layout = ({ children }: LayoutProps) => {
         {/* Sidebar Navigation */}
         <aside
           className={`${
-            sidebarOpen ? 'w-64' : 'w-0'
-          } bg-gray-900/80 backdrop-blur-md text-white transition-all duration-300 ease-in-out relative overflow-hidden`}
+            sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
+          } bg-gray-900/80 backdrop-blur-md text-white transition-all duration-300 ease-in-out relative`}
           style={{
             backgroundImage: 'url("/bg.jpg")',
             backgroundSize: 'cover',

@@ -30,6 +30,8 @@ interface Shift {
   status: string;
   locked: boolean;
   startTime?: string;
+  endTime?: string;
+  nozzleSales?: NozzleSale[];
 }
 
 interface FuelPrice {
@@ -59,6 +61,11 @@ export const InventoryDashboard = () => {
   const [shiftType, setShiftType] = useState<'DAY' | 'NIGHT'>('DAY');
   const [creatingShift, setCreatingShift] = useState(false);
   const [paymentValidationError, setPaymentValidationError] = useState<string>('');
+  
+  // Previous shifts
+  const [previousShifts, setPreviousShifts] = useState<Shift[]>([]);
+  const [selectedShiftDetails, setSelectedShiftDetails] = useState<Shift | null>(null);
+  const [showShiftDetailsModal, setShowShiftDetailsModal] = useState(false);
 
   useEffect(() => {
     if (user?.stationId) {
@@ -71,9 +78,10 @@ export const InventoryDashboard = () => {
 
   const loadData = async (sid: string) => {
     try {
-      const [shiftRes, pricesRes] = await Promise.all([
+      const [shiftRes, pricesRes, allShiftsRes] = await Promise.all([
         api.get(`/api/inventory/shifts/stations/${sid}/current`),
         api.get(`/api/fuel/prices/station/${sid}`),
+        api.get(`/api/inventory/shifts/stations/${sid}/all`),
       ]);
 
       console.log('Shift data:', shiftRes.data);
@@ -81,6 +89,11 @@ export const InventoryDashboard = () => {
 
       setCurrentShift(shiftRes.data.shift);
       setFuelPrices(pricesRes.data.prices || []);
+      
+      // Set previous shifts (exclude current shift if it exists)
+      const allShifts = allShiftsRes.data.shifts || [];
+      const currentShiftId = shiftRes.data.shift?.id;
+      setPreviousShifts(allShifts.filter((s: Shift) => s.id !== currentShiftId));
 
       // Load nozzle sales if shift exists
       if (shiftRes.data.shift) {
@@ -98,6 +111,16 @@ export const InventoryDashboard = () => {
       alert('Failed to load inventory data. Please check console for details.');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleViewShiftDetails = async (shiftId: string) => {
+    try {
+      const res = await api.get(`/api/inventory/shifts/${shiftId}/details`);
+      setSelectedShiftDetails(res.data.shift);
+      setShowShiftDetailsModal(true);
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to load shift details');
     }
   };
 
@@ -321,6 +344,58 @@ export const InventoryDashboard = () => {
         </div>
       )}
 
+      {/* Previous Shifts Section */}
+      {previousShifts.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">Previous Shifts</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {previousShifts.map((shift) => (
+                  <tr key={shift.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{shift.shiftType}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                      {new Date(shift.startTime || '').toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                      {shift.endTime ? new Date(shift.endTime).toLocaleString() : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        shift.locked
+                          ? 'bg-red-100 text-red-800'
+                          : shift.status === 'OPEN'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {shift.locked ? 'Locked' : shift.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleViewShiftDetails(shift.id)}
+                        className="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                      >
+                        Details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Shift Info */}
       {currentShift && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -505,45 +580,172 @@ export const InventoryDashboard = () => {
                   </svg>
                 </button>
               </div>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                handleCreateShift();
+              }}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Shift Type</label>
+                    <select
+                      value={shiftType}
+                      onChange={(e) => setShiftType(e.target.value as 'DAY' | 'NIGHT')}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option value="DAY">Day Shift</option>
+                      <option value="NIGHT">Night Shift</option>
+                    </select>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm text-gray-600">
+                      <strong>Date & Time:</strong> {new Date().toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Automatically set based on current date and time
+                    </p>
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      disabled={creatingShift}
+                      className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {creatingShift ? 'Creating...' : 'Create Shift'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateShiftModal(false);
+                        setShiftType('DAY');
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shift Details Modal */}
+      {showShiftDetailsModal && selectedShiftDetails && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full border border-gray-200 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Shift Details</h3>
+                <button
+                  onClick={() => {
+                    setShowShiftDetailsModal(false);
+                    setSelectedShiftDetails(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Shift Type</label>
-                  <select
-                    value={shiftType}
-                    onChange={(e) => setShiftType(e.target.value as 'DAY' | 'NIGHT')}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  >
-                    <option value="DAY">Day Shift</option>
-                    <option value="NIGHT">Night Shift</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Shift Type</label>
+                    <p className="text-gray-900">{selectedShiftDetails.shiftType}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      selectedShiftDetails.locked
+                        ? 'bg-red-100 text-red-800'
+                        : selectedShiftDetails.status === 'OPEN'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {selectedShiftDetails.locked ? 'Locked' : selectedShiftDetails.status}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                    <p className="text-gray-900">{new Date(selectedShiftDetails.startTime || '').toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                    <p className="text-gray-900">{selectedShiftDetails.endTime ? new Date(selectedShiftDetails.endTime).toLocaleString() : '-'}</p>
+                  </div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-sm text-gray-600">
-                    <strong>Date & Time:</strong> {new Date().toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Automatically set based on current date and time
-                  </p>
-                </div>
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={handleCreateShift}
-                    disabled={creatingShift}
-                    className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {creatingShift ? 'Creating...' : 'Create Shift'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreateShiftModal(false);
-                      setShiftType('DAY');
-                    }}
-                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-                  >
-                    Cancel
-                  </button>
-                </div>
+
+                {selectedShiftDetails.nozzleSales && selectedShiftDetails.nozzleSales.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Nozzle Sales</h4>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nozzle</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fuel Type</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price/L</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity (L)</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Card Amount</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cash Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {selectedShiftDetails.nozzleSales.map((sale: any) => {
+                            const totalAmount = (sale.quantityLiters || 0) * (sale.pricePerLiter || 0);
+                            return (
+                              <tr key={sale.id}>
+                                <td className="px-4 py-2 text-sm text-gray-900">{sale.nozzle?.name || '-'}</td>
+                                <td className="px-4 py-2 text-sm text-gray-700">{getFuelTypeLabel(sale.nozzle?.fuelType || '')}</td>
+                                <td className="px-4 py-2 text-sm text-gray-700">{(sale.pricePerLiter || 0).toFixed(2)}</td>
+                                <td className="px-4 py-2 text-sm text-gray-900">{(sale.quantityLiters || 0).toFixed(2)}</td>
+                                <td className="px-4 py-2 text-sm font-bold text-primary">{totalAmount.toFixed(2)} SAR</td>
+                                <td className="px-4 py-2 text-sm text-gray-700">{(sale.cardAmount || 0).toFixed(2)} SAR</td>
+                                <td className="px-4 py-2 text-sm text-gray-700">{(sale.cashAmount || 0).toFixed(2)} SAR</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot className="bg-gray-50">
+                          <tr>
+                            <td colSpan={4} className="px-4 py-2 text-sm font-semibold text-gray-900 text-right">Total:</td>
+                            <td className="px-4 py-2 text-sm font-bold text-primary">
+                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) => 
+                                sum + ((sale.quantityLiters || 0) * (sale.pricePerLiter || 0)), 0
+                              ).toFixed(2)} SAR
+                            </td>
+                            <td className="px-4 py-2 text-sm font-semibold text-gray-900">
+                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) => 
+                                sum + (sale.cardAmount || 0), 0
+                              ).toFixed(2)} SAR
+                            </td>
+                            <td className="px-4 py-2 text-sm font-semibold text-gray-900">
+                              {selectedShiftDetails.nozzleSales.reduce((sum: number, sale: any) => 
+                                sum + (sale.cashAmount || 0), 0
+                              ).toFixed(2)} SAR
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => {
+                    setShowShiftDetailsModal(false);
+                    setSelectedShiftDetails(null);
+                  }}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
