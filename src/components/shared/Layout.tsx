@@ -47,7 +47,7 @@ export const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Bar */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200/50 sticky top-0 z-50">
         <div className="flex items-center justify-between px-6 h-16">
           {/* Logo Section */}
           <div className="flex items-center gap-3">
@@ -74,15 +74,17 @@ export const Layout = ({ children }: LayoutProps) => {
               </svg>
               <span className="text-sm font-medium">Dashboard</span>
             </Link>
-            <Link
-              to="/employees"
-              className="flex items-center gap-2 text-gray-700 hover:text-primary transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="text-sm font-medium">Accounts</span>
-            </Link>
+            {isAdmin && (
+              <Link
+                to="/employees"
+                className="flex items-center gap-2 text-gray-700 hover:text-primary transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span className="text-sm font-medium">Accounts</span>
+              </Link>
+            )}
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors"
@@ -101,14 +103,15 @@ export const Layout = ({ children }: LayoutProps) => {
         <aside
           className={`${
             sidebarOpen ? 'w-64' : 'w-0'
-          } bg-gray-900 text-white transition-all duration-300 ease-in-out relative overflow-hidden`}
+          } bg-gray-900/80 backdrop-blur-md text-white transition-all duration-300 ease-in-out relative overflow-hidden`}
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='%23ffffff' stroke-width='0.5' opacity='0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23grid)'/%3E%3C/svg%3E")`,
+            backgroundImage: 'url("/bg.jpg")',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
+            backgroundAttachment: 'fixed',
           }}
         >
-          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm"></div>
+          <div className="absolute inset-0 bg-gray-900/70 backdrop-blur-md"></div>
           <div className="relative z-10 h-full flex flex-col">
             {/* Sidebar Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
@@ -159,8 +162,8 @@ export const Layout = ({ children }: LayoutProps) => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-h-screen bg-gray-50 relative">
-          {/* Background Image with Gradient Overlay */}
+        <main className="flex-1 min-h-screen relative">
+          {/* Background Image */}
           <div 
             className="fixed inset-0 z-0 pointer-events-none"
             style={{
@@ -170,16 +173,15 @@ export const Layout = ({ children }: LayoutProps) => {
               backgroundRepeat: 'no-repeat',
               backgroundAttachment: 'fixed',
             }}
-          >
-            {/* Gradient overlay that clears as we scroll */}
-            <div 
-              className="absolute inset-0 transition-opacity duration-300"
-              style={{
-                background: `linear-gradient(to bottom, rgba(0,0,0,${Math.max(0.2 - scrollY / 1000, 0)}) 0%, rgba(0,0,0,${Math.max(0.1 - scrollY / 2000, 0)}) 50%, transparent 100%)`,
-                opacity: Math.max(1 - scrollY / 500, 0.3),
-              }}
-            />
-          </div>
+          />
+          
+          {/* White overlay that fades as we scroll - more white at top, less as we scroll */}
+          <div 
+            className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-300"
+            style={{
+              background: `linear-gradient(to bottom, rgba(255,255,255,${Math.max(0.95 - scrollY / 800, 0.3)}) 0%, rgba(255,255,255,${Math.max(0.85 - scrollY / 600, 0.1)}) 50%, rgba(255,255,255,${Math.max(0.7 - scrollY / 400, 0)}) 100%)`,
+            }}
+          />
           
           <div className="relative z-10 p-6">
             {children}
@@ -188,9 +190,9 @@ export const Layout = ({ children }: LayoutProps) => {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-4 px-6 text-center">
+      <footer className="bg-white/80 backdrop-blur-md border-t border-gray-200/50 py-4 px-6 text-center relative z-10">
         <p className="text-xs text-gray-500">
-          Powered by{' '}
+          Developed and Powered by{' '}
           <a 
             href="https://www.nocastra.com/" 
             target="_blank" 

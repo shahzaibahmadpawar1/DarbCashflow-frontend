@@ -42,13 +42,11 @@ export const Login = () => {
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
       
       <div className="max-w-md w-full relative z-10">
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/30">
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-4 shadow-lg">
-              <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-              </svg>
+              <span className="text-white font-bold text-2xl">D</span>
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-1">
               Darb Station
@@ -119,7 +117,7 @@ export const Login = () => {
           </form>
 
           <div className="mt-8 text-center text-xs text-gray-500">
-            <p>Powered by <a href="https://www.nocastra.com/" target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline">Nocastra</a></p>
+            <p>Developed and Powered by <a href="https://www.nocastra.com/" target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline">Nocastra</a></p>
           </div>
         </div>
       </div>
