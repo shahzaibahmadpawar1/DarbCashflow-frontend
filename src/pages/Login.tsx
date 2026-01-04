@@ -26,10 +26,10 @@ export const Login = () => {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
       style={{
-        backgroundImage: 'url("/bg.jpg")',
+        backgroundImage: 'url("/darbcashflow/bg.jpg")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -40,7 +40,7 @@ export const Login = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-transparent"></div>
       {/* Blur overlay */}
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
-      
+
       <div className="max-w-md w-full relative z-10">
         <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/30">
           {/* Logo */}

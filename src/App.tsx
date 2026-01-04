@@ -5,13 +5,12 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { CashFlowDashboard } from './pages/CashFlowDashboard';
 import { FloatingCashView } from './pages/FloatingCashView';
-import { InventoryDashboard } from './pages/InventoryDashboard';
+import { InventoryDashboard } from './pages/InventoryDashboardNew';
 import { Employees } from './pages/Employees';
-import { Stations } from './pages/Stations';
+import { Stations } from './pages/StationsNew';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
-  // Only keep 'loading' if you are still using the loading spinner
   const { loading } = useAuth();
 
   if (loading) {
@@ -22,8 +21,9 @@ function App() {
     );
   }
 
+  // FIXED: Added basename here so the app knows it lives in a folder
   return (
-    <Router>
+    <Router basename="/darbcashflow">
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route
@@ -86,6 +86,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* This redirect will now correctly go to /darbcashflow/login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
@@ -93,4 +94,5 @@ function App() {
 }
 
 export default App;
+
 
