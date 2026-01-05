@@ -8,6 +8,7 @@ import { FloatingCashView } from './pages/FloatingCashView';
 import { InventoryDashboard } from './pages/InventoryDashboardNew';
 import { Employees } from './pages/Employees';
 import { Stations } from './pages/StationsNew';
+import { OrganizationStructure } from './pages/OrganizationStructure';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
@@ -82,6 +83,16 @@ function App() {
             <ProtectedRoute allowedRoles={['Admin']}>
               <Layout>
                 <Stations />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/organization"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <Layout>
+                <OrganizationStructure />
               </Layout>
             </ProtectedRoute>
           }

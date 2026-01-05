@@ -17,7 +17,7 @@ interface CashTransaction {
   cashToAM: number;
   status: string;
   createdAt: string;
-  station: { name: string };
+  station: { name: string; stationType?: string };
   cashTransfer?: {
     id: string;
     fromUser: { name: string };
@@ -30,9 +30,10 @@ interface CashTransaction {
 }
 
 export const CashFlowDashboard = () => {
-  const { isSM, isAM } = useAuth();
+  const { isSM, isAM, user } = useAuth();
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stationFilter, setStationFilter] = useState('all');
 
   useEffect(() => {
     loadTransactions();
@@ -85,6 +86,11 @@ export const CashFlowDashboard = () => {
     }
   };
 
+  const filteredTransactions = transactions.filter(tx =>
+    stationFilter === 'all' ||
+    tx.station?.stationType?.toLowerCase() === stationFilter
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -102,6 +108,22 @@ export const CashFlowDashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Cash Flow Dashboard</h1>
             <p className="text-gray-600">Track revenue and cash movement from station to bank</p>
           </div>
+          {user?.role === 'Admin' && (
+            <div className="flex gap-2">
+              {['All', 'Operational', 'Rental', 'Franchise'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setStationFilter(type.toLowerCase())}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${stationFilter === type.toLowerCase()
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -124,14 +146,14 @@ export const CashFlowDashboard = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {transactions.length === 0 ? (
+              {filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
-                    No transactions found. Create your first transaction above.
+                    No transactions found.
                   </td>
                 </tr>
               ) : (
-                transactions.map((tx) => (
+                filteredTransactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {new Date(tx.createdAt).toLocaleString()}

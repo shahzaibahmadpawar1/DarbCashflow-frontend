@@ -5,7 +5,7 @@ interface User {
     id: string;
     name: string;
     employeeId: string;
-    role: 'Admin' | 'SM' | 'AM';
+    role: 'Admin' | 'SM' | 'AM' | 'OU';
     station?: { name: string; id: string };
     areaManager?: { id: string; name: string };
 }
@@ -181,6 +181,7 @@ export const Employees = () => {
     const admins = users.filter(u => u.role === 'Admin');
     const areaManagers = users.filter(u => u.role === 'AM');
     const stationManagers = users.filter(u => u.role === 'SM');
+    const officeUsers = users.filter(u => u.role === 'OU');
 
     return (
         <div className="space-y-6">
@@ -240,6 +241,7 @@ export const Employees = () => {
                                     <option value="SM">Station Manager</option>
                                     <option value="AM">Area Manager</option>
                                     <option value="Admin">Admin</option>
+                                    <option value="OU">Office User</option>
                                 </select>
                             </div>
                             <div>
@@ -446,6 +448,38 @@ export const Employees = () => {
                             </div>
                         )}
                     </div>
+
+                    <div>
+                        <h3 className="text-md font-semibold text-gray-700 mb-4">Office Users ({officeUsers.length})</h3>
+                        {officeUsers.length === 0 ? (
+                            <p className="text-sm text-gray-500 text-center py-4">No office users found</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {officeUsers.map((ou) => (
+                                            <tr key={ou.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ou.name}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{ou.employeeId}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-orange-100 text-orange-800 border border-orange-200">
+                                                        Office User
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -482,9 +516,8 @@ export const Employees = () => {
                                     return (
                                         <div
                                             key={sm.id}
-                                            className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
-                                                isSelected ? 'bg-primary/10 border-primary' : 'bg-white border-gray-200'
-                                            } ${isAssignedToOther ? 'opacity-50' : 'hover:bg-gray-50'}`}
+                                            className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${isSelected ? 'bg-primary/10 border-primary' : 'bg-white border-gray-200'
+                                                } ${isAssignedToOther ? 'opacity-50' : 'hover:bg-gray-50'}`}
                                         >
                                             <div className="flex items-center">
                                                 <input

@@ -7,7 +7,7 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  const { user, logout, isAdmin, isAM, isSM } = useAuth();
+  const { user, logout, isAdmin, isAM, isSM, isOfficeUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -46,12 +46,13 @@ export const Layout = ({ children }: LayoutProps) => {
   const isActive = (path: string) => location.pathname === path;
 
   const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['Admin', 'AM', 'SM'] },
+    { path: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['Admin', 'AM', 'SM', 'OU'] },
     { path: '/cash-flow', label: 'Cash Flow', icon: '💰', roles: ['Admin', 'AM', 'SM'] },
-    { path: '/inventory', label: 'Inventory', icon: '📦', roles: ['Admin', 'AM', 'SM'] },
+    { path: '/inventory', label: 'Inventory', icon: '📦', roles: ['Admin', 'AM', 'SM', 'OU'] },
     { path: '/floating-cash', label: 'Floating Cash', icon: '💵', roles: ['Admin'] },
     { path: '/employees', label: 'Employees', icon: '👥', roles: ['Admin'] },
     { path: '/stations', label: 'Stations', icon: '🏢', roles: ['Admin'] },
+    { path: '/organization', label: 'Organization', icon: '🌳', roles: ['Admin'] },
   ];
 
   // Fallback: Try to get user from localStorage if useAuth hasn't loaded yet
@@ -73,11 +74,13 @@ export const Layout = ({ children }: LayoutProps) => {
   const effectiveIsAdmin = userRole === 'Admin' || isAdmin;
   const effectiveIsAM = userRole === 'AM' || isAM;
   const effectiveIsSM = userRole === 'SM' || isSM;
+  const effectiveIsOU = userRole === 'OU' || isOfficeUser;
 
   const filteredMenuItems = menuItems.filter(item => {
     if (item.roles.includes('Admin') && effectiveIsAdmin) return true;
     if (item.roles.includes('AM') && effectiveIsAM) return true;
     if (item.roles.includes('SM') && effectiveIsSM) return true;
+    if (item.roles.includes('OU') && effectiveIsOU) return true;
     return false;
   });
 
@@ -124,7 +127,7 @@ export const Layout = ({ children }: LayoutProps) => {
           {/* Right Navigation */}
           <div className="flex items-center gap-6">
             <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-              Role: {user?.role === 'Admin' ? 'Admin' : user?.role === 'AM' ? 'Area Manager' : 'Station Manager'}
+              Role: {user?.role === 'Admin' ? 'Admin' : user?.role === 'AM' ? 'Area Manager' : user?.role === 'OU' ? 'Office User' : 'Station Manager'}
             </div>
             <Link
               to="/dashboard"
@@ -189,8 +192,8 @@ export const Layout = ({ children }: LayoutProps) => {
                     key={item.path}
                     to={item.path}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 whitespace-nowrap ${isActive(item.path)
-                        ? 'bg-primary text-white shadow-lg'
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-primary text-white shadow-lg'
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                       }`}
                   >
                     <span className="text-xl">{item.icon}</span>

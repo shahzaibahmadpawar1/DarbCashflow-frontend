@@ -5,7 +5,7 @@ export interface User {
   id: string;
   employeeId: string;
   name: string;
-  role: 'SM' | 'AM' | 'Admin';
+  role: 'SM' | 'AM' | 'Admin' | 'OU';
   stationId?: string | null;
   areaManagerId?: string | null;
 }
@@ -58,12 +58,15 @@ export const useAuth = () => {
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'Admin';
+  const isOfficeUser = user?.role === 'OU';
   // Role checks (not including admin in SM/AM checks for dashboard display)
   const isSM = user?.role === 'SM';
   const isAM = user?.role === 'AM';
   // Permission checks (admin has all permissions)
   const canManageStation = user?.role === 'SM' || isAdmin;
   const canManageArea = user?.role === 'AM' || isAdmin;
+  // Office User can view all stations but cannot edit
+  const canViewAllStations = isAdmin || isOfficeUser;
 
   return {
     user,
@@ -72,9 +75,11 @@ export const useAuth = () => {
     logout,
     isAuthenticated,
     isAdmin,
+    isOfficeUser,
     isSM,
     isAM,
     canManageStation,
     canManageArea,
+    canViewAllStations,
   };
 };
