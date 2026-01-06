@@ -64,6 +64,20 @@ export const Stations = () => {
     const [editingNozzle, setEditingNozzle] = useState<string | null>(null);
     const [newOpeningReading, setNewOpeningReading] = useState<number>(0);
 
+    // Extended nozzle editing
+    const [editingNozzleName, setEditingNozzleName] = useState<string | null>(null);
+    const [editingNozzleFuelType, setEditingNozzleFuelType] = useState<string | null>(null);
+    const [newNozzleName, setNewNozzleName] = useState('');
+    const [newNozzleFuelType, setNewNozzleFuelType] = useState('');
+
+    // Adding new nozzle
+    const [showAddNozzle, setShowAddNozzle] = useState(false);
+    const [addNozzleData, setAddNozzleData] = useState({
+        name: '',
+        fuelType: '91_GASOLINE',
+        openingReading: 0
+    });
+
     // Store prices for all stations
     const [stationPrices, setStationPrices] = useState<Record<string, any[]>>({});
 
@@ -205,6 +219,97 @@ export const Stations = () => {
             }
         } catch (error: any) {
             alert(error.response?.data?.error || 'Failed to update opening reading');
+        }
+    };
+
+    const handleEditNozzleName = (nozzle: Nozzle) => {
+        setEditingNozzleName(nozzle.id);
+        setNewNozzleName(nozzle.name);
+    };
+
+    const handleSaveNozzleName = async (nozzleId: string) => {
+        try {
+            await api.patch(`/api/inventory/nozzles/${nozzleId}`, {
+                name: newNozzleName,
+            });
+            alert('Nozzle name updated successfully!');
+            setEditingNozzleName(null);
+
+            // Reload nozzles
+            if (selectedStation) {
+                const res = await api.get(`/api/inventory/stations/${selectedStation.id}/nozzles`);
+                setStationNozzles(res.data.nozzles || []);
+            }
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to update nozzle name');
+        }
+    };
+
+    const handleEditNozzleFuelType = (nozzle: Nozzle) => {
+        setEditingNozzleFuelType(nozzle.id);
+        setNewNozzleFuelType(nozzle.fuelType);
+    };
+
+    const handleSaveNozzleFuelType = async (nozzleId: string) => {
+        try {
+            await api.patch(`/api/inventory/nozzles/${nozzleId}`, {
+                fuelType: newNozzleFuelType,
+            });
+            alert('Nozzle fuel type updated successfully!');
+            setEditingNozzleFuelType(null);
+
+            // Reload nozzles
+            if (selectedStation) {
+                const res = await api.get(`/api/inventory/stations/${selectedStation.id}/nozzles`);
+                setStationNozzles(res.data.nozzles || []);
+            }
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to update nozzle fuel type');
+        }
+    };
+
+    const handleAddNewNozzle = async () => {
+        if (!selectedStation) return;
+
+        if (!addNozzleData.name.trim()) {
+            alert('Please enter a nozzle name');
+            return;
+        }
+
+        try {
+            await api.post(`/api/inventory/stations/${selectedStation.id}/nozzles`, {
+                name: addNozzleData.name,
+                fuelType: addNozzleData.fuelType,
+                openingReading: addNozzleData.openingReading,
+            });
+            alert('Nozzle added successfully!');
+            setShowAddNozzle(false);
+            setAddNozzleData({ name: '', fuelType: '91_GASOLINE', openingReading: 0 });
+
+            // Reload nozzles
+            const res = await api.get(`/api/inventory/stations/${selectedStation.id}/nozzles`);
+            setStationNozzles(res.data.nozzles || []);
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to add nozzle');
+        }
+    };
+
+    const handleDeleteNozzle = async (nozzleId: string, nozzleName: string) => {
+        if (!confirm(`Are you sure you want to delete nozzle "${nozzleName}"?`)) {
+            return;
+        }
+
+        try {
+            await api.delete(`/api/inventory/nozzles/${nozzleId}`);
+            alert('Nozzle deleted successfully!');
+
+            // Reload nozzles
+            if (selectedStation) {
+                const res = await api.get(`/api/inventory/stations/${selectedStation.id}/nozzles`);
+                setStationNozzles(res.data.nozzles || []);
+            }
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to delete nozzle');
         }
     };
 
@@ -736,13 +841,34 @@ export const Stations = () => {
                             </div>
 
                             {/* Nozzles Section */}
-                            <h4 className="text-lg font-semibold text-gray-900 mb-3">Nozzle Configuration</h4>
+                            <div className="flex items-center justify-between mb-3">
+                                <h4 className="text-lg font-semibold text-gray-900">Nozzle Configuration</h4>
+                                <button
+                                    onClick={() => setShowAddNozzle(true)}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 text-sm"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    Add Nozzle
+                                </button>
+                            </div>
 
                             <div className="overflow-x-auto">
+                                <style>{`
+                                    input[type="number"].no-arrows::-webkit-inner-spin-button,
+                                    input[type="number"].no-arrows::-webkit-outer-spin-button {
+                                        -webkit-appearance: none;
+                                        margin: 0;
+                                    }
+                                    input[type="number"].no-arrows {
+                                        -moz-appearance: textfield;
+                                    }
+                                `}</style>
                                 <table className="w-full">
                                     <thead>
                                         <tr className="bg-gray-50 border-b border-gray-200">
-                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nozzle</th>
+                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nozzle Name</th>
                                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Fuel Type</th>
                                             <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Opening Reading</th>
                                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Actions</th>
@@ -751,51 +877,198 @@ export const Stations = () => {
                                     <tbody>
                                         {stationNozzles.map((nozzle) => (
                                             <tr key={nozzle.id} className="border-b border-gray-100">
-                                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{nozzle.name}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">{getFuelTypeLabel(nozzle.fuelType)}</td>
+                                                {/* Nozzle Name */}
+                                                <td className="px-4 py-3 text-sm">
+                                                    {editingNozzleName === nozzle.id ? (
+                                                        <input
+                                                            type="text"
+                                                            value={newNozzleName}
+                                                            onChange={(e) => setNewNozzleName(e.target.value)}
+                                                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                                                        />
+                                                    ) : (
+                                                        <span className="font-medium text-gray-900">{nozzle.name}</span>
+                                                    )}
+                                                </td>
+
+                                                {/* Fuel Type */}
+                                                <td className="px-4 py-3 text-sm">
+                                                    {editingNozzleFuelType === nozzle.id ? (
+                                                        <select
+                                                            value={newNozzleFuelType}
+                                                            onChange={(e) => setNewNozzleFuelType(e.target.value)}
+                                                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                                                        >
+                                                            <option value="91_GASOLINE">91 Gasoline</option>
+                                                            <option value="95_GASOLINE">95 Gasoline</option>
+                                                            <option value="DIESEL">Diesel</option>
+                                                        </select>
+                                                    ) : (
+                                                        <span className="text-gray-600">{getFuelTypeLabel(nozzle.fuelType)}</span>
+                                                    )}
+                                                </td>
+
+                                                {/* Opening Reading */}
                                                 <td className="px-4 py-3 text-sm text-right">
                                                     {editingNozzle === nozzle.id ? (
                                                         <input
                                                             type="number"
                                                             value={newOpeningReading}
                                                             onChange={(e) => setNewOpeningReading(parseFloat(e.target.value) || 0)}
-                                                            className="w-32 px-2 py-1 border border-gray-300 rounded text-right"
+                                                            className="w-32 px-2 py-1 border border-gray-300 rounded text-right no-arrows"
                                                             step="0.01"
                                                         />
                                                     ) : (
                                                         <span className="font-semibold text-gray-900">{nozzle.openingReading.toFixed(2)}</span>
                                                     )}
                                                 </td>
+
+                                                {/* Actions */}
                                                 <td className="px-4 py-3 text-center">
-                                                    {editingNozzle === nozzle.id ? (
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            <button
-                                                                onClick={() => handleSaveOpeningReading(nozzle.id)}
-                                                                className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90"
-                                                            >
-                                                                Save
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setEditingNozzle(null)}
-                                                                className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
-                                                            >
-                                                                Cancel
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => handleEditOpeningReading(nozzle)}
-                                                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"
-                                                        >
-                                                            Edit
-                                                        </button>
-                                                    )}
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        {/* Edit Name */}
+                                                        {editingNozzleName === nozzle.id ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleSaveNozzleName(nozzle.id)}
+                                                                    className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setEditingNozzleName(null)}
+                                                                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </>
+                                                        ) : editingNozzleFuelType === nozzle.id ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleSaveNozzleFuelType(nozzle.id)}
+                                                                    className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setEditingNozzleFuelType(null)}
+                                                                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </>
+                                                        ) : editingNozzle === nozzle.id ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleSaveOpeningReading(nozzle.id)}
+                                                                    className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setEditingNozzle(null)}
+                                                                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleEditNozzleName(nozzle)}
+                                                                    className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
+                                                                    title="Edit Name"
+                                                                >
+                                                                    Name
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleEditNozzleFuelType(nozzle)}
+                                                                    className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs hover:bg-purple-200"
+                                                                    title="Edit Fuel Type"
+                                                                >
+                                                                    Type
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleEditOpeningReading(nozzle)}
+                                                                    className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200"
+                                                                    title="Edit Reading"
+                                                                >
+                                                                    Reading
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteNozzle(nozzle.id, nozzle.name)}
+                                                                    className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200"
+                                                                    title="Delete Nozzle"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
+
+                            {/* Add Nozzle Form */}
+                            {showAddNozzle && (
+                                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <h5 className="text-md font-semibold text-gray-900 mb-3">Add New Nozzle</h5>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Nozzle Name *</label>
+                                            <input
+                                                type="text"
+                                                value={addNozzleData.name}
+                                                onChange={(e) => setAddNozzleData({ ...addNozzleData, name: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                placeholder="e.g., 91-3"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Type *</label>
+                                            <select
+                                                value={addNozzleData.fuelType}
+                                                onChange={(e) => setAddNozzleData({ ...addNozzleData, fuelType: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                            >
+                                                <option value="91_GASOLINE">91 Gasoline</option>
+                                                <option value="95_GASOLINE">95 Gasoline</option>
+                                                <option value="DIESEL">Diesel</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Opening Reading</label>
+                                            <input
+                                                type="number"
+                                                value={addNozzleData.openingReading}
+                                                onChange={(e) => setAddNozzleData({ ...addNozzleData, openingReading: parseFloat(e.target.value) || 0 })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent no-arrows"
+                                                step="0.01"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 mt-4">
+                                        <button
+                                            onClick={handleAddNewNozzle}
+                                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                        >
+                                            Add Nozzle
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowAddNozzle(false);
+                                                setAddNozzleData({ name: '', fuelType: '91_GASOLINE', openingReading: 0 });
+                                            }}
+                                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Fuel Prices Section */}
                             <div className="mt-6 border-t border-gray-200 pt-6">
