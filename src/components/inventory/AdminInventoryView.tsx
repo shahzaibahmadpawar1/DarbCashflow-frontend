@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
+import { PrintableInventoryReport } from './PrintableInventoryReport';
 
 interface AdminStationStats {
     id: string;
@@ -7,6 +8,11 @@ interface AdminStationStats {
     stationType: string;
     totalRevenue: number;
     totalLiters: number;
+    fuelBreakdown: {
+        gasoline91: { liters: number; amount: number };
+        gasoline95: { liters: number; amount: number };
+        diesel: { liters: number; amount: number };
+    };
 }
 
 interface AdminInventoryViewProps {
@@ -23,6 +29,35 @@ export const AdminInventoryView = ({ onSelectStation }: AdminInventoryViewProps)
     const [singleDate, setSingleDate] = useState(new Date().toISOString().slice(0, 10));
     const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
     const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
+
+    // Print functionality
+    const printRef = useRef<HTMLDivElement>(null);
+    const handlePrint = () => {
+        const printContent = printRef.current;
+        if (!printContent) return;
+
+        const printWindow = window.open('', '', 'width=800,height=600');
+        if (!printWindow) return;
+
+        printWindow.document.write('<html><head><title>Inventory Report</title>');
+        printWindow.document.write('<style>');
+        printWindow.document.write(`
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+            @media print {
+                @page { margin: 0.5in; }
+                body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            }
+        `);
+        printWindow.document.write('</style></head><body>');
+        printWindow.document.write(printContent.innerHTML);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
+    };
 
     useEffect(() => {
         loadAdminStats();
@@ -64,14 +99,29 @@ export const AdminInventoryView = ({ onSelectStation }: AdminInventoryViewProps)
                         <h1 className="text-3xl font-bold text-gray-900 mb-2">All Stations Inventory</h1>
                         <p className="text-gray-600">Overview of inventory across all stations</p>
                     </div>
-                    <div className="text-right space-y-2">
-                        <div>
-                            <p className="text-sm text-gray-600">Total Sales (Revenue)</p>
-                            <p className="text-3xl font-bold text-green-600">{totalRevenue.toFixed(2)} SAR</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-600">Total Volume</p>
-                            <p className="text-xl font-semibold text-blue-600">{totalLiters.toFixed(2)} L</p>
+                    <div className="flex items-start gap-4">
+                        {/* Print Button */}
+                        <button
+                            onClick={handlePrint}
+                            disabled={filteredStats.length === 0}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            Print Report
+                        </button>
+
+                        {/* Totals */}
+                        <div className="text-right space-y-2">
+                            <div>
+                                <p className="text-sm text-gray-600">Total Sales (Revenue)</p>
+                                <p className="text-3xl font-bold text-green-600">{totalRevenue.toFixed(2)} SAR</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600">Total Volume</p>
+                                <p className="text-xl font-semibold text-blue-600">{totalLiters.toFixed(2)} L</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -209,6 +259,19 @@ export const AdminInventoryView = ({ onSelectStation }: AdminInventoryViewProps)
                         </div>
                     ))
                 )}
+            </div>
+
+            {/* Hidden Printable Report */}
+            <div className="hidden">
+                <PrintableInventoryReport
+                    ref={printRef}
+                    stations={filteredStats}
+                    stationFilter={stationFilter}
+                    dateFilterType={dateFilterType}
+                    singleDate={singleDate}
+                    startDate={startDate}
+                    endDate={endDate}
+                />
             </div>
         </div>
     );
