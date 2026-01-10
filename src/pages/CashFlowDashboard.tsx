@@ -24,7 +24,7 @@ interface CashTransaction {
     toUser: { name: string };
     receiptUrl?: string;
     createdAt?: string;
-    updatedAt?: string;
+    acceptedAt?: string;
     depositedAt?: string;
   };
 }
@@ -115,8 +115,8 @@ export const CashFlowDashboard = () => {
                   key={type}
                   onClick={() => setStationFilter(type.toLowerCase())}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${stationFilter === type.toLowerCase()
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                 >
                   {type}
@@ -179,10 +179,8 @@ export const CashFlowDashboard = () => {
                         : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {tx.status === 'WITH_AM' || tx.status === 'DEPOSITED'
-                        ? (tx.cashTransfer?.updatedAt
-                          ? new Date(tx.cashTransfer.updatedAt).toLocaleString()
-                          : '-')
+                      {tx.cashTransfer?.acceptedAt
+                        ? new Date(tx.cashTransfer.acceptedAt).toLocaleString()
                         : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
