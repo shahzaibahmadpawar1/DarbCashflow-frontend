@@ -91,6 +91,11 @@ export const InventoryDashboard = () => {
     const [showViewShiftModal, setShowViewShiftModal] = useState(false);
     const [viewShiftData, setViewShiftData] = useState<DailyShift | null>(null);
 
+    // Edit Tanker Modal
+    const [showEditTankerModal, setShowEditTankerModal] = useState(false);
+    const [editTankerData, setEditTankerData] = useState<any | null>(null);
+    const [savingTanker, setSavingTanker] = useState(false);
+
     // Payment summary state
     const [paymentData, setPaymentData] = useState({
         cardAmount: 0,
@@ -371,6 +376,85 @@ export const InventoryDashboard = () => {
     const handleViewShift = (shift: any) => {
         setViewShiftData(shift);
         setShowViewShiftModal(true);
+    };
+
+    const handleEditTanker = (delivery: any) => {
+        setEditTankerData({
+            ...delivery,
+            deliveryDate: new Date(delivery.deliveryDate).toISOString().split('T')[0],
+        });
+        setShowEditTankerModal(true);
+    };
+
+    const handleSaveEditedTanker = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editTankerData) return;
+
+        try {
+            setSavingTanker(true);
+            await api.put(`/api/inventory/tanker-deliveries/${editTankerData.id}`, {
+                litersDelivered: editTankerData.litersDelivered,
+                deliveryDate: editTankerData.deliveryDate,
+                aramcoTicket: editTankerData.aramcoTicket,
+                notes: editTankerData.notes,
+                receiptUrl: editTankerData.receiptUrl
+            });
+
+            await loadTankerHistory();
+            setShowEditTankerModal(false);
+            setEditTankerData(null);
+            alert('Delivery updated successfully');
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to update delivery');
+        } finally {
+            setSavingTanker(false);
+        }
+    };
+
+    const handleToggleTankerLock = async (delivery: any) => {
+        if (!user || user.role !== 'Admin') return;
+
+        // Confirm action
+        if (!window.confirm(`Are you sure you want to ${delivery.isUnlocked ? 'lock' : 'unlock'} this delivery for editing?`)) {
+            return;
+        }
+
+        try {
+            await api.put(`/api/inventory/tanker-deliveries/${delivery.id}/lock`, {
+                isUnlocked: !delivery.isUnlocked
+            });
+            await loadTankerHistory();
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to update lock status');
+        }
+    };
+
+    const handleEditReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('receipt', file);
+
+            const res = await api.post('/api/upload/receipt', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+
+            setEditTankerData({ ...editTankerData, receiptUrl: res.data.url });
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to upload receipt');
+        }
     };
 
     const loadShiftHistory = async () => {
@@ -1580,7 +1664,7 @@ export const InventoryDashboard = () => {
                                                     {new Date(delivery.deliveryDate).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-900">
-                                                    {getFuelTypeLabel(delivery.fuelType)}
+                                                    {getFuelTypeLabel(delivery.tank?.fuelType || delivery.fuelType)}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">
                                                     {delivery.litersDelivered}
@@ -1601,6 +1685,39 @@ export const InventoryDashboard = () => {
                                                                 </svg>
                                                             </button>
                                                         )}
+
+                                                        {/* Edit Button */}
+                                                        {(user?.role === 'Admin' || (user?.role === 'SM' && delivery.isUnlocked)) && (
+                                                            <button
+                                                                onClick={() => handleEditTanker(delivery)}
+                                                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                                                                title="Edit"
+                                                            >
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
+
+                                                        {/* Admin Unlock/Lock Button */}
+                                                        {user?.role === 'Admin' && (
+                                                            <button
+                                                                onClick={() => handleToggleTankerLock(delivery)}
+                                                                className={`p-2 rounded-lg transition-colors ${delivery.isUnlocked ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-50'}`}
+                                                                title={delivery.isUnlocked ? 'Click to Lock' : 'Click to Unlock for SM'}
+                                                            >
+                                                                {delivery.isUnlocked ? (
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                                                    </svg>
+                                                                ) : (
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
+                                                        )}
+
                                                         <button
                                                             onClick={() => handlePrintTanker(delivery)}
                                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -1633,6 +1750,100 @@ export const InventoryDashboard = () => {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Tanker Modal */}
+            {showEditTankerModal && editTankerData && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[55] p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-lg w-full border border-gray-200">
+                        <div className="p-6">
+                            <h3 className="text-xl font-semibold text-gray-900 mb-6">Edit Tanker Delivery</h3>
+                            <form onSubmit={handleSaveEditedTanker} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={editTankerData.deliveryDate}
+                                        onChange={(e) => setEditTankerData({ ...editTankerData, deliveryDate: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Liters Delivered</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        step="0.01"
+                                        value={editTankerData.litersDelivered}
+                                        onChange={(e) => setEditTankerData({ ...editTankerData, litersDelivered: parseFloat(e.target.value) })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Aramco Ticket #</label>
+                                    <input
+                                        type="text"
+                                        value={editTankerData.aramcoTicket || ''}
+                                        onChange={(e) => setEditTankerData({ ...editTankerData, aramcoTicket: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                    <textarea
+                                        value={editTankerData.notes || ''}
+                                        onChange={(e) => setEditTankerData({ ...editTankerData, notes: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        rows={3}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Receipt</label>
+                                    <div className="flex items-center gap-4">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleEditReceiptUpload}
+                                            className="w-full text-sm text-gray-500
+                                                file:mr-4 file:py-2 file:px-4
+                                                file:rounded-full file:border-0
+                                                file:text-sm file:font-semibold
+                                                file:bg-primary file:text-white
+                                                hover:file:bg-primary/90"
+                                        />
+                                        {editTankerData.receiptUrl && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setViewReceiptUrl(editTankerData.receiptUrl)}
+                                                className="text-primary hover:text-primary/80 text-sm font-medium"
+                                            >
+                                                View Current
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowEditTankerModal(false)}
+                                        className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={savingTanker}
+                                        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                    >
+                                        {savingTanker ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

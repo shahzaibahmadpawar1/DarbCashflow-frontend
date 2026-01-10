@@ -17,14 +17,32 @@ export const FloatingCashView = () => {
   const [loading, setLoading] = useState(true);
   const [stationTypeFilter, setStationTypeFilter] = useState<string>('ALL');
 
+  // Date Filter State
+  const [dateFilterType, setDateFilterType] = useState<'all' | 'single' | 'range'>('all');
+  const [singleDate, setSingleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+
   useEffect(() => {
     loadFloatingCash();
-  }, [stationTypeFilter]);
+  }, [stationTypeFilter, dateFilterType, singleDate, startDate, endDate]);
 
   const loadFloatingCash = async () => {
     try {
       setLoading(true);
-      const params = stationTypeFilter !== 'ALL' ? { stationType: stationTypeFilter } : {};
+      const params: any = {};
+
+      if (stationTypeFilter !== 'ALL') {
+        params.stationType = stationTypeFilter;
+      }
+
+      if (dateFilterType === 'single') {
+        params.date = singleDate;
+      } else if (dateFilterType === 'range') {
+        params.startDate = startDate;
+        params.endDate = endDate;
+      }
+
       const res = await api.get('/api/cash/floating-cash', { params });
       setData(res.data);
     } catch (error) {
@@ -68,6 +86,74 @@ export const FloatingCashView = () => {
               <option value="FRANCHISE">Franchise</option>
             </select>
           </div>
+        </div>
+      </div>
+
+      {/* Date Filter */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-sm font-semibold text-gray-700 mb-4">Date Filter</h3>
+        <div className="flex flex-wrap gap-3 items-end">
+          {/* Filter Type Buttons */}
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={() => setDateFilterType('all')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${dateFilterType === 'all' ? 'bg-green-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                }`}
+            >
+              All Time
+            </button>
+            <button
+              onClick={() => setDateFilterType('single')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${dateFilterType === 'single' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                }`}
+            >
+              Single Date
+            </button>
+            <button
+              onClick={() => setDateFilterType('range')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${dateFilterType === 'range' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                }`}
+            >
+              Date Range
+            </button>
+          </div>
+
+          {/* Single Date Picker */}
+          {dateFilterType === 'single' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Select Date</label>
+              <input
+                type="date"
+                value={singleDate}
+                onChange={(e) => setSingleDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+          )}
+
+          {/* Date Range Pickers */}
+          {dateFilterType === 'range' && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -155,12 +241,12 @@ export const FloatingCashView = () => {
                       {tx.cashTransfer?.toUser?.name || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {tx.cashTransfer?.createdAt 
+                      {tx.cashTransfer?.createdAt
                         ? new Date(tx.cashTransfer.createdAt).toLocaleString()
                         : new Date(tx.createdAt).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {tx.cashTransfer?.updatedAt 
+                      {tx.cashTransfer?.updatedAt
                         ? new Date(tx.cashTransfer.updatedAt).toLocaleString()
                         : new Date(tx.updatedAt).toLocaleString()}
                     </td>
