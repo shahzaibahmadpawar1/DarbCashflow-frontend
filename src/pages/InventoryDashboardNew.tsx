@@ -339,6 +339,48 @@ export const InventoryDashboard = () => {
         }
     };
 
+    const handleUnlockShift = async (shiftId: string) => {
+        const confirmed = window.confirm(
+            'Are you sure you want to unlock this shift? The station manager will be able to edit it again.'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setSaving(true);
+            await api.post(`/api/inventory/shifts/${shiftId}/unlock`);
+            alert('Shift unlocked successfully!');
+            loadShiftHistory(); // Reload history
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to unlock shift');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteShift = async (shiftId: string) => {
+        const confirmed = window.confirm(
+            'Are you sure you want to delete this shift? This action cannot be undone and will delete all associated data.'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setSaving(true);
+            await api.delete(`/api/inventory/shifts/${shiftId}`);
+            alert('Shift deleted successfully!');
+            loadShiftHistory(); // Reload history
+            // If the deleted shift was the current shift, reload current shift
+            if (currentShift?.id === shiftId) {
+                loadCurrentShift(stationId);
+            }
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to delete shift');
+        } finally {
+            setSaving(false);
+        }
+    };
+
 
 
     const handlePrintShift = (shift: any) => {
@@ -1231,6 +1273,32 @@ export const InventoryDashboard = () => {
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                             </svg>
                                                         </button>
+                                                        {/* Unlock button - Admin only, for locked shifts */}
+                                                        {user?.role === 'Admin' && shift.locked && (
+                                                            <button
+                                                                onClick={() => handleUnlockShift(shift.id)}
+                                                                disabled={saving}
+                                                                className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
+                                                                title="Unlock Shift"
+                                                            >
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
+                                                        {/* Delete button - Admin can delete any shift, SM can delete unlocked shifts */}
+                                                        {(user?.role === 'Admin' || (user?.role === 'SM' && !shift.locked)) && (
+                                                            <button
+                                                                onClick={() => handleDeleteShift(shift.id)}
+                                                                disabled={saving}
+                                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                                                title="Delete Shift"
+                                                            >
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
