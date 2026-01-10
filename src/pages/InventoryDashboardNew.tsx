@@ -22,6 +22,8 @@ interface DailyShiftReading {
         name: string;
         fuelType: string;
     };
+    shiftAPhotoUrl?: string;
+    shiftBPhotoUrl?: string;
 }
 
 interface PaymentSummary {
@@ -84,6 +86,10 @@ export const InventoryDashboard = () => {
     const [tankerHistory, setTankerHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [stationStats, setStationStats] = useState<{ totalRevenue: number; totalLiters: number } | null>(null);
+
+    // View Shift Modal
+    const [showViewShiftModal, setShowViewShiftModal] = useState(false);
+    const [viewShiftData, setViewShiftData] = useState<DailyShift | null>(null);
 
     // Payment summary state
     const [paymentData, setPaymentData] = useState({
@@ -173,6 +179,8 @@ export const InventoryDashboard = () => {
                 id: r.id,
                 shiftAReading: r.shiftAReading,
                 shiftBReading: r.shiftBReading,
+                shiftAPhotoUrl: r.shiftAPhotoUrl,
+                shiftBPhotoUrl: r.shiftBPhotoUrl,
             })) || [];
 
             await api.put(`/api/inventory/shifts/${currentShift.id}/daily/readings`, { readings });
@@ -320,6 +328,49 @@ export const InventoryDashboard = () => {
         } finally {
             setUploadingReceipt(false);
         }
+    };
+
+    const handleReadingPhotoUpload = async (readingId: string, field: 'shiftAPhotoUrl' | 'shiftBPhotoUrl', e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!currentShift?.dailyShiftReadings) return;
+
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file');
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            return;
+        }
+
+        try {
+            // Use same upload endpoint as receipt
+            const formData = new FormData();
+            formData.append('receipt', file);
+
+            const res = await api.post('/api/upload/receipt', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+
+            setCurrentShift({
+                ...currentShift,
+                dailyShiftReadings: currentShift.dailyShiftReadings.map(r =>
+                    r.id === readingId ? { ...r, [field]: res.data.url } : r
+                ),
+            });
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to upload photo');
+        }
+    };
+
+    const handleViewShift = (shift: any) => {
+        setViewShiftData(shift);
+        setShowViewShiftModal(true);
     };
 
     const loadShiftHistory = async () => {
@@ -873,43 +924,80 @@ export const InventoryDashboard = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {currentShift.dailyShiftReadings?.map((reading) => (
-                                    <tr key={reading.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{reading.nozzle.name}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-600">{getFuelTypeLabel(reading.nozzle.fuelType)}</td>
-                                        <td className="px-4 py-3 text-sm text-right text-gray-900">{reading.pricePerLiter.toFixed(2)}</td>
-                                        <td className="px-4 py-3 text-sm text-right text-gray-600">{reading.openingReading.toFixed(2)}</td>
-                                        <td className="px-4 py-3">
-                                            <input
-                                                type="number"
-                                                value={reading.shiftAReading || ''}
-                                                onChange={(e) => handleReadingChange(reading.id, 'shiftAReading', e.target.value)}
-                                                disabled={currentShift.locked}
-                                                className="w-24 px-2 py-1 text-sm text-right border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100"
-                                                step="0.01"
-                                            />
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <input
-                                                type="number"
-                                                value={reading.shiftBReading || ''}
-                                                onChange={(e) => handleReadingChange(reading.id, 'shiftBReading', e.target.value)}
-                                                disabled={currentShift.locked}
-                                                className="w-24 px-2 py-1 text-sm text-right border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100"
-                                                step="0.01"
-                                            />
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-right text-gray-900">{reading.shiftALiters.toFixed(2)}</td>
-                                        <td className="px-4 py-3 text-sm text-right text-gray-900">{reading.shiftBLiters.toFixed(2)}</td>
-                                        <td className="px-4 py-3 text-sm text-right text-gray-900">{reading.shiftAAmount.toFixed(2)}</td>
-                                        <td className="px-4 py-3 text-sm text-right text-gray-900">{reading.shiftBAmount.toFixed(2)}</td>
-                                        <td className="px-4 py-3 text-sm text-right font-semibold text-primary">{reading.totalAmount.toFixed(2)}</td>
-                                    </tr>
-                                ))}
+                                {currentShift.dailyShiftReadings?.map((reading) => {
+                                    const isShiftAInvalid = reading.shiftAReading !== null && reading.shiftAReading < reading.openingReading;
+                                    const previousForB = reading.shiftAReading || reading.openingReading;
+                                    const isShiftBInvalid = reading.shiftBReading !== null && reading.shiftBReading < previousForB;
+
+                                    return (
+                                        <tr key={reading.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{reading.nozzle.name}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">{getFuelTypeLabel(reading.nozzle.fuelType)}</td>
+                                            <td className="px-4 py-3 text-sm text-right text-gray-900">{reading.pricePerLiter.toFixed(2)}</td>
+                                            <td className="px-4 py-3 text-sm text-right text-gray-600">{reading.openingReading.toFixed(2)}</td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <label className={`cursor-pointer text-gray-400 hover:text-primary ${reading.shiftAPhotoUrl ? 'text-green-500' : ''}`}>
+                                                        <input
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept="image/*"
+                                                            onChange={(e) => handleReadingPhotoUpload(reading.id, 'shiftAPhotoUrl', e)}
+                                                            disabled={currentShift.locked}
+                                                        />
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        </svg>
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        value={reading.shiftAReading || ''}
+                                                        onChange={(e) => handleReadingChange(reading.id, 'shiftAReading', e.target.value)}
+                                                        disabled={currentShift.locked}
+                                                        className={`w-24 px-2 py-1 text-sm text-right border rounded focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 ${isShiftAInvalid ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300'}`}
+                                                        step="0.01"
+                                                    />
+                                                </div>
+                                                {isShiftAInvalid && <div className="text-xs text-red-600 text-right mt-1">Below Opening</div>}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <label className={`cursor-pointer text-gray-400 hover:text-primary ${reading.shiftBPhotoUrl ? 'text-green-500' : ''}`}>
+                                                        <input
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept="image/*"
+                                                            onChange={(e) => handleReadingPhotoUpload(reading.id, 'shiftBPhotoUrl', e)}
+                                                            disabled={currentShift.locked}
+                                                        />
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        </svg>
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        value={reading.shiftBReading || ''}
+                                                        onChange={(e) => handleReadingChange(reading.id, 'shiftBReading', e.target.value)}
+                                                        disabled={currentShift.locked}
+                                                        className={`w-24 px-2 py-1 text-sm text-right border rounded focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 ${isShiftBInvalid ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300'}`}
+                                                        step="0.01"
+                                                    />
+                                                </div>
+                                                {isShiftBInvalid && <div className="text-xs text-red-600 text-right mt-1">Below Previous</div>}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-right text-gray-900">{reading.shiftALiters.toFixed(2)}</td>
+                                            <td className="px-4 py-3 text-sm text-right text-gray-900">{reading.shiftBLiters.toFixed(2)}</td>
+                                            <td className="px-4 py-3 text-sm text-right text-gray-900">{reading.shiftAAmount.toFixed(2)}</td>
+                                            <td className="px-4 py-3 text-sm text-right text-gray-900">{reading.shiftBAmount.toFixed(2)}</td>
+                                            <td className="px-4 py-3 text-sm text-right font-semibold text-primary">{reading.totalAmount.toFixed(2)}</td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
-
                     {/* Action Buttons */}
                     {!currentShift.locked && canManageStation && (
                         <div className="mt-6 flex gap-3">
@@ -1284,6 +1372,16 @@ export const InventoryDashboard = () => {
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button
+                                                            onClick={() => handleViewShift(shift)}
+                                                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                                            title="View Details"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
                                                             onClick={() => handlePrintShift(shift)}
                                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                             title="Print"
@@ -1340,6 +1438,108 @@ export const InventoryDashboard = () => {
                                         )}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Shift Details Modal */}
+            {showViewShiftModal && viewShiftData && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-5xl w-full border border-gray-200 max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pb-2 border-b border-gray-100">
+                                <div>
+                                    <h3 className="text-xl font-semibold text-gray-900">Shift Details</h3>
+                                    <p className="text-sm text-gray-500">
+                                        {new Date(viewShiftData.shiftDate).toLocaleDateString()} - {viewShiftData.status}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowViewShiftModal(false)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Readings Table */}
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="bg-gray-50 border-b border-gray-200">
+                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nozzle</th>
+                                                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Info</th>
+                                                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Shift A</th>
+                                                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Shift B</th>
+                                                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {viewShiftData.dailyShiftReadings?.map((reading) => (
+                                                <tr key={reading.id} className="border-b border-gray-100">
+                                                    <td className="px-4 py-3">
+                                                        <div className="font-medium text-gray-900">{reading.nozzle.name}</div>
+                                                        <div className="text-sm text-gray-500">{getFuelTypeLabel(reading.nozzle.fuelType)}</div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-sm">
+                                                        <div className="text-gray-600">Price: {reading.pricePerLiter.toFixed(2)}</div>
+                                                        <div className="text-gray-600">Open: {reading.openingReading.toFixed(2)}</div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <div className="text-gray-900 font-medium">{reading.shiftAReading?.toFixed(2) || '-'}</div>
+                                                        <div className="text-xs text-gray-500">{reading.shiftALiters.toFixed(2)} L</div>
+                                                        <div className="text-xs text-gray-500">{reading.shiftAAmount.toFixed(2)} SAR</div>
+                                                        {reading.shiftAPhotoUrl && (
+                                                            <button
+                                                                onClick={() => setViewReceiptUrl(reading.shiftAPhotoUrl || null)}
+                                                                className="mt-1 text-xs text-blue-600 hover:underline flex items-center justify-center gap-1 mx-auto"
+                                                            >
+                                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                </svg>
+                                                                View Photo
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <div className="text-gray-900 font-medium">{reading.shiftBReading?.toFixed(2) || '-'}</div>
+                                                        <div className="text-xs text-gray-500">{reading.shiftBLiters.toFixed(2)} L</div>
+                                                        <div className="text-xs text-gray-500">{reading.shiftBAmount.toFixed(2)} SAR</div>
+                                                        {reading.shiftBPhotoUrl && (
+                                                            <button
+                                                                onClick={() => setViewReceiptUrl(reading.shiftBPhotoUrl || null)}
+                                                                className="mt-1 text-xs text-blue-600 hover:underline flex items-center justify-center gap-1 mx-auto"
+                                                            >
+                                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                </svg>
+                                                                View Photo
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="text-primary font-bold">{reading.totalAmount.toFixed(2)} SAR</div>
+                                                        <div className="text-xs text-gray-500">{(reading.shiftALiters + reading.shiftBLiters).toFixed(2)} L</div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="flex justify-end pt-4 border-t border-gray-100">
+                                    <button
+                                        onClick={() => setShowViewShiftModal(false)}
+                                        className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
