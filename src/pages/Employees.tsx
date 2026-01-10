@@ -177,6 +177,53 @@ export const Employees = () => {
         );
     };
 
+    // Delete employee
+    const handleDeleteEmployee = async (user: User) => {
+        if (!confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            await api.delete(`/api/users/${user.id}`);
+            loadUsers();
+            alert('Employee deleted successfully');
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to delete employee');
+        }
+    };
+
+    // Edit password
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [selectedUserForPassword, setSelectedUserForPassword] = useState<User | null>(null);
+    const [newPassword, setNewPassword] = useState('');
+
+    const handleEditPassword = (user: User) => {
+        setSelectedUserForPassword(user);
+        setNewPassword('');
+        setShowPasswordModal(true);
+    };
+
+    const handleSavePassword = async () => {
+        if (!selectedUserForPassword) return;
+
+        if (!newPassword || newPassword.length < 6) {
+            alert('Password must be at least 6 characters long');
+            return;
+        }
+
+        try {
+            await api.patch(`/api/users/${selectedUserForPassword.id}/password`, {
+                password: newPassword,
+            });
+            setShowPasswordModal(false);
+            setSelectedUserForPassword(null);
+            setNewPassword('');
+            alert('Password updated successfully');
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to update password');
+        }
+    };
+
     // Filter users by role
     const admins = users.filter(u => u.role === 'Admin');
     const areaManagers = users.filter(u => u.role === 'AM');
@@ -322,6 +369,7 @@ export const Employees = () => {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -333,6 +381,22 @@ export const Employees = () => {
                                                     <span className="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200">
                                                         {admin.role}
                                                     </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleEditPassword(admin)}
+                                                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Password
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteEmployee(admin)}
+                                                            className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -384,12 +448,26 @@ export const Employees = () => {
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                        <button
-                                                            onClick={() => handleAssignAM(am)}
-                                                            className="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium"
-                                                        >
-                                                            Assign
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleAssignAM(am)}
+                                                                className="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium"
+                                                            >
+                                                                Assign
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleEditPassword(am)}
+                                                                className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                                                            >
+                                                                Password
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteEmployee(am)}
+                                                                className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -434,12 +512,26 @@ export const Employees = () => {
                                                     {sm.areaManager?.name || '-'}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                    <button
-                                                        onClick={() => handleAssignSM(sm)}
-                                                        className="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium"
-                                                    >
-                                                        Assign
-                                                    </button>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleAssignSM(sm)}
+                                                            className="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium"
+                                                        >
+                                                            Assign
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleEditPassword(sm)}
+                                                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Password
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteEmployee(sm)}
+                                                            className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -461,6 +553,7 @@ export const Employees = () => {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -472,6 +565,22 @@ export const Employees = () => {
                                                     <span className="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-orange-100 text-orange-800 border border-orange-200">
                                                         Office User
                                                     </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleEditPassword(ou)}
+                                                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Password
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteEmployee(ou)}
+                                                            className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -637,6 +746,66 @@ export const Employees = () => {
                                     className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
                                 >
                                     Save Assignment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Password Modal */}
+            {showPasswordModal && selectedUserForPassword && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-gray-200">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-semibold text-gray-900">
+                                    Edit Password for {selectedUserForPassword.name}
+                                </h2>
+                                <button
+                                    onClick={() => {
+                                        setShowPasswordModal(false);
+                                        setSelectedUserForPassword(null);
+                                        setNewPassword('');
+                                    }}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="space-y-4 mb-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        New Password *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        placeholder="Enter new password (min 6 characters)"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters long</p>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => {
+                                        setShowPasswordModal(false);
+                                        setSelectedUserForPassword(null);
+                                        setNewPassword('');
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSavePassword}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                >
+                                    Update Password
                                 </button>
                             </div>
                         </div>
