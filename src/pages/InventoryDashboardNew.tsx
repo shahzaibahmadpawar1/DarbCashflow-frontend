@@ -226,6 +226,27 @@ export const InventoryDashboard = () => {
         }
     };
 
+    const handleDeleteCurrentShift = async () => {
+        if (!currentShift) return;
+
+        const confirmed = window.confirm(
+            'Are you sure you want to delete this shift? This action cannot be undone and will delete all associated data.'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setSaving(true);
+            await api.delete(`/api/inventory/shifts/${currentShift.id}`);
+            alert('Shift deleted successfully!');
+            loadCurrentShift(stationId); // Reload to show no current shift
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to delete shift');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const handleAddTankerDelivery = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -999,6 +1020,13 @@ export const InventoryDashboard = () => {
                                     className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
                                 >
                                     {saving ? 'Locking...' : 'Lock Shift'}
+                                </button>
+                                <button
+                                    onClick={handleDeleteCurrentShift}
+                                    disabled={saving}
+                                    className="px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors font-medium disabled:opacity-50 border-2 border-red-800"
+                                >
+                                    {saving ? 'Deleting...' : 'Delete Shift'}
                                 </button>
                             </>
                         )}
