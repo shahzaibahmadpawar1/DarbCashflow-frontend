@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { AdminInventoryView } from '../components/inventory/AdminInventoryView';
+import { FuelTankInventoryDashboard } from '../components/FuelTankInventoryDashboard';
 
 interface Station {
   id: string;
@@ -189,7 +190,10 @@ export const Dashboard = () => {
 
       {/* Admin: Inventory Overview */}
       {isAdmin && (
-        <AdminInventoryView onSelectStation={(id) => navigate(`/inventory?stationId=${id}`)} />
+        <div className="space-y-6">
+          <AdminInventoryView onSelectStation={(id) => navigate(`/inventory?stationId=${id}`)} />
+          <FuelTankInventoryDashboard />
+        </div>
       )}
 
       {/* SM: Assignment Info */}

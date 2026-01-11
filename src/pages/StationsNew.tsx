@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
+import { NozzleOrderAdjuster } from '../components/NozzleOrderAdjuster';
 
 interface Station {
     id: string;
     name: string;
     address: string;
     stationType?: string;
+    purchaseCredits?: number;
 }
 
 interface Nozzle {
@@ -36,6 +38,7 @@ export const Stations = () => {
         address: '',
         stationType: 'OPERATIONAL',
         stationManagerId: '',
+        purchaseCredits: 0,
     });
 
     // Station managers for assignment
@@ -89,8 +92,11 @@ export const Stations = () => {
     // Station details editing
     const [editingStationName, setEditingStationName] = useState(false);
     const [editingStationType, setEditingStationType] = useState(false);
+    const [editingPurchaseCredits, setEditingPurchaseCredits] = useState(false);
     const [newStationName, setNewStationName] = useState('');
     const [newStationType, setNewStationType] = useState('');
+    const [newPurchaseCredits, setNewPurchaseCredits] = useState(0);
+    const [showNozzleOrderAdjuster, setShowNozzleOrderAdjuster] = useState(false);
 
     // Loading state to prevent duplicate submissions
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,7 +173,7 @@ export const Stations = () => {
     };
 
     const resetForm = () => {
-        setFormData({ name: '', address: '', stationType: 'OPERATIONAL', stationManagerId: '' });
+        setFormData({ name: '', address: '', stationType: 'OPERATIONAL', stationManagerId: '', purchaseCredits: 0 });
         setNozzleConfigs([
             { name: '91-1', fuelType: '91_GASOLINE', openingReading: 0 },
             { name: '91-2', fuelType: '91_GASOLINE', openingReading: 0 },
@@ -417,6 +423,28 @@ export const Stations = () => {
         }
     };
 
+    const handleEditPurchaseCredits = () => {
+        setEditingPurchaseCredits(true);
+        setNewPurchaseCredits(selectedStation?.purchaseCredits || 0);
+    };
+
+    const handleSavePurchaseCredits = async () => {
+        if (!selectedStation) return;
+
+        try {
+            await api.put(`/api/stations/${selectedStation.id}`, {
+                purchaseCredits: newPurchaseCredits
+            });
+
+            setSelectedStation({ ...selectedStation, purchaseCredits: newPurchaseCredits });
+            setEditingPurchaseCredits(false);
+            loadStations();
+            alert('Purchase credits updated successfully!');
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to update purchase credits');
+        }
+    };
+
 
     const handleNozzleConfigChange = (index: number, field: keyof NozzleConfig, value: string | number) => {
         const updated = [...nozzleConfigs];
@@ -535,6 +563,19 @@ export const Stations = () => {
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Credits (SAR)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    value={formData.purchaseCredits}
+                                    onChange={(e) => setFormData({ ...formData, purchaseCredits: parseFloat(e.target.value) || 0 })}
+                                    placeholder="Enter initial purchase credits"
+                                />
+                                <p className="mt-1 text-sm text-gray-500">Initial budget for fuel purchase requests</p>
                             </div>
                         </div>
 
@@ -824,6 +865,47 @@ export const Stations = () => {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Purchase Credits */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Credits (SAR)</label>
+                                        {editingPurchaseCredits ? (
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={newPurchaseCredits}
+                                                    onChange={(e) => setNewPurchaseCredits(parseFloat(e.target.value) || 0)}
+                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                                />
+                                                <button
+                                                    onClick={handleSavePurchaseCredits}
+                                                    className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90"
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingPurchaseCredits(false)}
+                                                    className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm font-semibold text-gray-900">
+                                                    {selectedStation.purchaseCredits?.toFixed(2) || '0.00'} SAR
+                                                </span>
+                                                <button
+                                                    onClick={handleEditPurchaseCredits}
+                                                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"
+                                                >
+                                                    Edit
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Delete Station Button */}
@@ -843,15 +925,26 @@ export const Stations = () => {
                             {/* Nozzles Section */}
                             <div className="flex items-center justify-between mb-3">
                                 <h4 className="text-lg font-semibold text-gray-900">Nozzle Configuration</h4>
-                                <button
-                                    onClick={() => setShowAddNozzle(true)}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 text-sm"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                    </svg>
-                                    Add Nozzle
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setShowNozzleOrderAdjuster(true)}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 text-sm"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                        </svg>
+                                        Rearrange Nozzles
+                                    </button>
+                                    <button
+                                        onClick={() => setShowAddNozzle(true)}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 text-sm"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                        </svg>
+                                        Add Nozzle
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="overflow-x-auto">
@@ -1143,6 +1236,24 @@ export const Stations = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Nozzle Order Adjuster Modal */}
+            {showNozzleOrderAdjuster && selectedStation && (
+                <NozzleOrderAdjuster
+                    stationId={selectedStation.id}
+                    nozzles={stationNozzles}
+                    onOrderUpdated={async () => {
+                        // Reload nozzles to show updated order
+                        try {
+                            const nozzlesRes = await api.get(`/api/inventory/stations/${selectedStation.id}/nozzles`);
+                            setStationNozzles(nozzlesRes.data.nozzles || []);
+                        } catch (error) {
+                            console.error('Failed to reload nozzles:', error);
+                        }
+                    }}
+                    onClose={() => setShowNozzleOrderAdjuster(false)}
+                />
             )}
         </div>
     );

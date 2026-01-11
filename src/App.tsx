@@ -9,6 +9,7 @@ import { InventoryDashboard } from './pages/InventoryDashboardNew';
 import { Employees } from './pages/Employees';
 import { Stations } from './pages/StationsNew';
 import { OrganizationStructure } from './pages/OrganizationStructure';
+import { OfficePurchaseRequests } from './pages/OfficePurchaseRequests';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
@@ -93,6 +94,16 @@ function App() {
             <ProtectedRoute allowedRoles={['Admin']}>
               <Layout>
                 <OrganizationStructure />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/purchase-requests"
+          element={
+            <ProtectedRoute allowedRoles={['OU', 'Admin']}>
+              <Layout>
+                <OfficePurchaseRequests />
               </Layout>
             </ProtectedRoute>
           }

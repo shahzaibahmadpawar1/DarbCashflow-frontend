@@ -109,6 +109,134 @@ export const FuelTankInventoryDashboard = () => {
         }
     };
 
+    const handlePrint = () => {
+        if (!summary) return;
+
+        const printWindow = window.open('', '', 'width=900,height=800');
+        if (!printWindow) return;
+
+        let dateFilterText = 'All Time';
+        if (dateFilterType === 'single') {
+            dateFilterText = `Date: ${new Date(singleDate).toLocaleDateString()}`;
+        } else if (dateFilterType === 'range') {
+            dateFilterText = `Period: ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`;
+        }
+
+        const fuelTypes = [
+            { key: '91_GASOLINE', label: '91 Gasoline' },
+            { key: '95_GASOLINE', label: '95 Gasoline' },
+            { key: 'DIESEL', label: 'Diesel' }
+        ] as const;
+
+        let htmlContent = `
+            <html>
+                <head>
+                    <title>Fuel Tank Inventory Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        h1 { color: #1a1a1a; margin-bottom: 5px; }
+                        .header { margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+                        .meta { color: #666; font-size: 14px; }
+                        .section { margin-bottom: 40px; page-break-inside: avoid; }
+                        .section-title { 
+                            font-size: 18px; 
+                            font-weight: bold; 
+                            margin-bottom: 15px; 
+                            padding-bottom: 5px;
+                            border-bottom: 1px solid #ddd;
+                            display: flex;
+                            justify-content: space-between;
+                        }
+                        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; }
+                        th { background-color: #f9fafb; font-weight: 600; color: #374151; }
+                        .total-row { font-weight: bold; background-color: #f3f4f6; }
+                        .text-right { text-align: right; }
+                        @media print {
+                            button { display: none; }
+                            body { -webkit-print-color-adjust: exact; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Fuel Tank Inventory Report</h1>
+                        <div class="meta">
+                            <p>${dateFilterText}</p>
+                            <p>Generated on: ${new Date().toLocaleString()}</p>
+                        </div>
+                    </div>
+        `;
+
+        fuelTypes.forEach(ft => {
+            const data = summary[ft.key];
+            if (data && data.stations && data.stations.length > 0) {
+                htmlContent += `
+                    <div class="section">
+                        <div class="section-title">
+                            <span>${ft.label}</span>
+                            <span>Total: ${data.totalLiters.toLocaleString()} L</span>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Station</th>
+                                    <th>Aramco Ticket</th>
+                                    <th>Notes</th>
+                                    <th class="text-right">Liters</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                // Sort by date desc
+                const sortedDeliveries = [...data.stations].sort((a: any, b: any) =>
+                    new Date(b.deliveryDate).getTime() - new Date(a.deliveryDate).getTime()
+                );
+
+                sortedDeliveries.forEach((delivery: any) => {
+                    htmlContent += `
+                        <tr>
+                            <td>${new Date(delivery.deliveryDate).toLocaleDateString()}</td>
+                            <td>${delivery.stationName}</td>
+                            <td>${delivery.aramcoTicket || '-'}</td>
+                            <td>${delivery.notes || '-'}</td>
+                            <td class="text-right">${Number(delivery.litersDelivered).toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+
+                htmlContent += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                htmlContent += `
+                    <div class="section">
+                        <div class="section-title">
+                            <span>${ft.label}</span>
+                            <span>Total: 0 L</span>
+                        </div>
+                        <p style="color: #666; font-style: italic;">No deliveries found for this period.</p>
+                    </div>
+                `;
+            }
+        });
+
+        htmlContent += `
+                <script>
+                    window.onload = function() { window.print(); }
+                </script>
+                </body>
+            </html>
+        `;
+
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center p-12">
@@ -120,9 +248,20 @@ export const FuelTankInventoryDashboard = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Fuel Tank Inventory</h2>
-                <p className="text-gray-600">Overview of fuel tank deliveries across all stations</p>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Fuel Tank Inventory</h2>
+                    <p className="text-gray-600">Overview of fuel tank deliveries across all stations</p>
+                </div>
+                <button
+                    onClick={handlePrint}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Print Report
+                </button>
             </div>
 
             {/* Date Filter */}

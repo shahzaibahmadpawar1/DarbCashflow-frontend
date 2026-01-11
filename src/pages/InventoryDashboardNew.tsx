@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { AdminInventoryView } from '../components/inventory/AdminInventoryView';
+import { StationPurchaseRequests } from '../components/StationPurchaseRequests';
 
 interface DailyShiftReading {
     id: string;
@@ -81,11 +82,13 @@ export const InventoryDashboard = () => {
     const [showTankerHistory, setShowTankerHistory] = useState(false);
     const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
     const [showConsumptionReport, setShowConsumptionReport] = useState(false);
+    const [showPurchaseRequests, setShowPurchaseRequests] = useState(false);
 
     const [shiftHistory, setShiftHistory] = useState<any[]>([]);
     const [tankerHistory, setTankerHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [stationStats, setStationStats] = useState<{ totalRevenue: number; totalLiters: number } | null>(null);
+    const [stationCredits, setStationCredits] = useState<number>(0);
 
     // View Shift Modal
     const [showViewShiftModal, setShowViewShiftModal] = useState(false);
@@ -794,8 +797,14 @@ export const InventoryDashboard = () => {
         console.log('StationId effect triggered', stationId);
         if (stationId) {
             loadStationStats(stationId);
+            api.get(`/api/stations/${stationId}`).then(res => {
+                setStationCredits(res.data.station?.purchaseCredits || 0);
+            }).catch(err => {
+                console.error('Failed to load station credits:', err);
+            });
         } else {
             setStationStats(null);
+            setStationCredits(0);
         }
     }, [stationId]);
 
@@ -882,6 +891,20 @@ export const InventoryDashboard = () => {
                         </button>
                         {canManageStation && (
                             <button
+                                onClick={() => setShowPurchaseRequests(!showPurchaseRequests)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${showPurchaseRequests
+                                    ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                                    : 'bg-yellow-600 text-white hover:bg-yellow-700'
+                                    }`}
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Purchase Requests
+                            </button>
+                        )}
+                        {canManageStation && (
+                            <button
                                 onClick={() => setShowTankerModal(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
                             >
@@ -913,7 +936,7 @@ export const InventoryDashboard = () => {
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-semibold text-gray-900">Total Station Inventory</h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="p-4 bg-green-50 rounded-lg border border-green-100 flex justify-between items-center">
                             <div>
                                 <p className="text-sm text-gray-600 mb-1">Total Sales (Revenue)</p>
@@ -933,6 +956,17 @@ export const InventoryDashboard = () => {
                             <div className="p-3 bg-blue-100 rounded-full text-blue-600">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 flex justify-between items-center">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Purchase Credits</p>
+                                <p className="text-2xl font-bold text-purple-700">{stationCredits.toLocaleString()} SAR</p>
+                            </div>
+                            <div className="p-3 bg-purple-100 rounded-full text-purple-600">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
                         </div>
@@ -1209,6 +1243,16 @@ export const InventoryDashboard = () => {
                             Print Shift
                         </button>
                     </div>
+                </div>
+            )}
+
+            {/* Purchase Requests Section */}
+            {canManageStation && showPurchaseRequests && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <StationPurchaseRequests
+                        stationId={stationId}
+                        stationName="Your Station"
+                    />
                 </div>
             )}
 

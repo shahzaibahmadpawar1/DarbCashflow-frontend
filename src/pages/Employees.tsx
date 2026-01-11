@@ -8,6 +8,7 @@ interface User {
     role: 'Admin' | 'SM' | 'AM' | 'OU';
     station?: { name: string; id: string };
     areaManager?: { id: string; name: string };
+    assignedStations?: Array<{ station: { id: string; name: string } }>;
 }
 
 interface Station {
@@ -612,7 +613,20 @@ export const Employees = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-600">
-                                                    <span className="text-gray-400 italic">Click "Assign Stations" to manage</span>
+                                                    {ou.assignedStations && ou.assignedStations.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {ou.assignedStations.map((assignment) => (
+                                                                <span
+                                                                    key={assignment.station.id}
+                                                                    className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium"
+                                                                >
+                                                                    {assignment.station.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic">No stations assigned</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                     <div className="flex gap-2">

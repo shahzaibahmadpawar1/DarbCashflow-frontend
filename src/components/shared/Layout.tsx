@@ -49,6 +49,7 @@ export const Layout = ({ children }: LayoutProps) => {
     { path: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['Admin', 'AM', 'SM', 'OU'] },
     { path: '/cash-flow', label: 'Cash Flow', icon: '💰', roles: ['Admin', 'AM', 'SM'] },
     { path: '/inventory', label: 'Inventory', icon: '📦', roles: ['Admin', 'AM', 'SM', 'OU'] },
+    { path: '/purchase-requests', label: 'Purchase Requests', icon: '📝', roles: ['Admin', 'OU'] },
     { path: '/floating-cash', label: 'Floating Cash', icon: '💵', roles: ['Admin'] },
     { path: '/employees', label: 'Employees', icon: '👥', roles: ['Admin'] },
     { path: '/stations', label: 'Stations', icon: '🏢', roles: ['Admin'] },
