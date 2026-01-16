@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../services/api';
 
 interface CreatePurchaseRequestModalProps {
@@ -6,6 +6,17 @@ interface CreatePurchaseRequestModalProps {
     stationName: string;
     onClose: () => void;
     onSuccess: () => void;
+}
+
+interface CreditSummary {
+    station: {
+        id: string;
+        name: string;
+        hasCreditFacility: boolean;
+        totalCreditLimit: number;
+        utilizedCredits: number;
+        availableCredits: number;
+    };
 }
 
 export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, onSuccess }: CreatePurchaseRequestModalProps) => {
@@ -18,6 +29,24 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
     });
     const [uploading, setUploading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [creditSummary, setCreditSummary] = useState<CreditSummary | null>(null);
+    const [loadingCredit, setLoadingCredit] = useState(true);
+
+    useEffect(() => {
+        fetchCreditSummary();
+    }, [stationId]);
+
+    const fetchCreditSummary = async () => {
+        try {
+            setLoadingCredit(true);
+            const res = await api.get(`/api/credit-transactions/${stationId}/summary`);
+            setCreditSummary(res.data);
+        } catch (error) {
+            console.error('Failed to fetch credit summary:', error);
+        } finally {
+            setLoadingCredit(false);
+        }
+    };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -47,6 +76,15 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
             return;
         }
 
+        // Check receipt requirement
+        const canUseCredits = creditSummary?.station.hasCreditFacility &&
+            creditSummary.station.availableCredits >= formData.paymentAmount;
+
+        if (!canUseCredits && !formData.receiptUrl) {
+            alert('Receipt is required for stations without sufficient credits');
+            return;
+        }
+
         try {
             setSubmitting(true);
             await api.post('/api/purchase-requests', {
@@ -73,9 +111,13 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
         }
     };
 
+    const canUseCredits = creditSummary?.station.hasCreditFacility &&
+        creditSummary.station.availableCredits >= formData.paymentAmount;
+    const receiptRequired = !canUseCredits;
+
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full border border-gray-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full border border-gray-200 max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
@@ -92,6 +134,43 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                             </svg>
                         </button>
                     </div>
+
+                    {/* Credit Status */}
+                    {loadingCredit ? (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <p className="text-sm text-blue-700">Loading credit information...</p>
+                        </div>
+                    ) : creditSummary?.station.hasCreditFacility ? (
+                        <div className={`border rounded-lg p-4 mb-4 ${creditSummary.station.availableCredits >= formData.paymentAmount
+                                ? 'bg-green-50 border-green-200'
+                                : 'bg-orange-50 border-orange-200'
+                            }`}>
+                            <h4 className="text-sm font-semibold mb-2">Credit Status</h4>
+                            <div className="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <p className="text-gray-600">Total Limit</p>
+                                    <p className="font-bold">{creditSummary.station.totalCreditLimit.toLocaleString()} SAR</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-600">Utilized</p>
+                                    <p className="font-bold">{creditSummary.station.utilizedCredits.toLocaleString()} SAR</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-600">Available</p>
+                                    <p className="font-bold text-green-600">{creditSummary.station.availableCredits.toLocaleString()} SAR</p>
+                                </div>
+                            </div>
+                            {canUseCredits ? (
+                                <p className="text-sm text-green-700 mt-2">✓ This request can use station credits</p>
+                            ) : (
+                                <p className="text-sm text-orange-700 mt-2">⚠ Insufficient credits - receipt required</p>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                            <p className="text-sm text-orange-700">⚠ This station does not have credit facility - receipt is required</p>
+                        </div>
+                    )}
 
                     {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -156,17 +235,23 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
 
                         {/* Receipt Upload */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Receipt (Optional)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Receipt {receiptRequired ? <span className="text-red-600">*</span> : '(Optional)'}
+                            </label>
                             <input
                                 type="file"
                                 accept="image/*,application/pdf"
                                 onChange={handleFileUpload}
                                 disabled={uploading}
+                                required={receiptRequired}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                             />
                             {uploading && <p className="mt-1 text-sm text-blue-600">Uploading...</p>}
                             {formData.receiptUrl && (
                                 <p className="mt-1 text-sm text-green-600">✓ Receipt uploaded</p>
+                            )}
+                            {receiptRequired && !formData.receiptUrl && (
+                                <p className="mt-1 text-sm text-orange-600">Receipt is required for this request</p>
                             )}
                         </div>
 
@@ -186,6 +271,20 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                     <span className="text-gray-600">Payment:</span>
                                     <span className="font-medium text-gray-900">{formData.paymentAmount.toLocaleString()} SAR</span>
                                 </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Payment Method:</span>
+                                    <span className={`font-medium ${canUseCredits ? 'text-green-600' : 'text-orange-600'}`}>
+                                        {canUseCredits ? 'Using Credits' : 'Cash Payment'}
+                                    </span>
+                                </div>
+                                {canUseCredits && creditSummary && (
+                                    <div className="flex justify-between pt-2 border-t border-gray-200">
+                                        <span className="text-gray-600">Credits After:</span>
+                                        <span className="font-medium text-gray-900">
+                                            {(creditSummary.station.availableCredits - formData.paymentAmount).toLocaleString()} SAR
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -212,3 +311,5 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
         </div>
     );
 };
+
+
