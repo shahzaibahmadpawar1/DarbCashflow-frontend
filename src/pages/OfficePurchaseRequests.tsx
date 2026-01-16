@@ -16,6 +16,7 @@ interface PurchaseRequest {
         id: string;
         name: string;
         purchaseCredits: number;
+        stationType?: 'OPERATIONAL' | 'RENTAL' | 'FRANCHISE';
     };
     creator: {
         name: string;
@@ -31,6 +32,7 @@ export const OfficePurchaseRequests = () => {
     const [loading, setLoading] = useState(true);
     const [selectedPR, setSelectedPR] = useState<PurchaseRequest | null>(null);
     const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED'>('all');
+    const [categoryFilter, setCategoryFilter] = useState<'all' | 'OPERATIONAL' | 'RENTAL' | 'FRANCHISE'>('all');
 
     useEffect(() => {
         loadPurchaseRequests();
@@ -40,7 +42,7 @@ export const OfficePurchaseRequests = () => {
         try {
             setLoading(true);
             const res = await api.get('/api/purchase-requests/office-user');
-            setPurchaseRequests(res.data.purchaseRequests);
+            setPurchaseRequests(res.data.purchaseRequests || []);
         } catch (error) {
             console.error('Failed to load purchase requests:', error);
         } finally {
@@ -72,9 +74,16 @@ export const OfficePurchaseRequests = () => {
         }
     };
 
-    const filteredRequests = statusFilter === 'all'
-        ? purchaseRequests
-        : purchaseRequests.filter(pr => pr.status === statusFilter);
+    // Apply both status and category filters
+    let filteredRequests = purchaseRequests;
+
+    if (statusFilter !== 'all') {
+        filteredRequests = filteredRequests.filter(pr => pr.status === statusFilter);
+    }
+
+    if (categoryFilter !== 'all') {
+        filteredRequests = filteredRequests.filter(pr => pr.station.stationType === categoryFilter);
+    }
 
     if (loading) {
         return (
@@ -87,35 +96,78 @@ export const OfficePurchaseRequests = () => {
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Purchase Requests</h1>
-                    <p className="text-gray-600 mt-1">Review and manage fuel purchase requests</p>
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Purchase Requests</h1>
+                        <p className="text-gray-600 mt-1">Review and manage fuel purchase requests</p>
+                    </div>
                 </div>
 
-                {/* Status Filter */}
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setStatusFilter('all')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                    >
-                        All ({purchaseRequests.length})
-                    </button>
-                    <button
-                        onClick={() => setStatusFilter('PENDING')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'PENDING' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                    >
-                        Pending ({purchaseRequests.filter(pr => pr.status === 'PENDING').length})
-                    </button>
-                    <button
-                        onClick={() => setStatusFilter('APPROVED')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'APPROVED' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                    >
-                        Approved ({purchaseRequests.filter(pr => pr.status === 'APPROVED' || pr.status === 'RECEIVED').length})
-                    </button>
+                {/* Filters */}
+                <div className="flex flex-col gap-3">
+                    {/* Status Filter */}
+                    <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">Filter by Status</label>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => setStatusFilter('all')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                All ({purchaseRequests.length})
+                            </button>
+                            <button
+                                onClick={() => setStatusFilter('PENDING')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'PENDING' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Pending ({purchaseRequests.filter(pr => pr.status === 'PENDING').length})
+                            </button>
+                            <button
+                                onClick={() => setStatusFilter('APPROVED')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'APPROVED' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Approved ({purchaseRequests.filter(pr => pr.status === 'APPROVED' || pr.status === 'RECEIVED').length})
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Category Filter */}
+                    <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">Filter by Station Type</label>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => setCategoryFilter('all')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${categoryFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                All Stations
+                            </button>
+                            <button
+                                onClick={() => setCategoryFilter('OPERATIONAL')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${categoryFilter === 'OPERATIONAL' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Operational ({purchaseRequests.filter(pr => pr.station.stationType === 'OPERATIONAL').length})
+                            </button>
+                            <button
+                                onClick={() => setCategoryFilter('RENTAL')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${categoryFilter === 'RENTAL' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Rental ({purchaseRequests.filter(pr => pr.station.stationType === 'RENTAL').length})
+                            </button>
+                            <button
+                                onClick={() => setCategoryFilter('FRANCHISE')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${categoryFilter === 'FRANCHISE' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Franchise ({purchaseRequests.filter(pr => pr.station.stationType === 'FRANCHISE').length})
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
