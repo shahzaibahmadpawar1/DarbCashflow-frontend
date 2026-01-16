@@ -5,7 +5,7 @@ interface User {
     id: string;
     name: string;
     employeeId: string;
-    role: 'Admin' | 'SM' | 'AM' | 'OU';
+    role: 'Admin' | 'SM' | 'AM' | 'OU' | 'Accountant' | 'ViewOnly';
     station?: { name: string; id: string };
     areaManager?: { id: string; name: string };
     assignedStations?: Array<{ station: { id: string; name: string } }>;
@@ -274,6 +274,8 @@ export const Employees = () => {
     const areaManagers = users.filter(u => u.role === 'AM');
     const stationManagers = users.filter(u => u.role === 'SM');
     const officeUsers = users.filter(u => u.role === 'OU');
+    const accountants = users.filter(u => u.role === 'Accountant');
+    const viewOnlyUsers = users.filter(u => u.role === 'ViewOnly');
 
     return (
         <div className="space-y-6">
@@ -334,6 +336,8 @@ export const Employees = () => {
                                     <option value="AM">Area Manager</option>
                                     <option value="Admin">Admin</option>
                                     <option value="OU">Office User</option>
+                                    <option value="Accountant">Accountant</option>
+                                    <option value="ViewOnly">View Only</option>
                                 </select>
                             </div>
                             <div>
@@ -644,6 +648,104 @@ export const Employees = () => {
                                                         </button>
                                                         <button
                                                             onClick={() => handleDeleteEmployee(ou)}
+                                                            className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mb-6">
+                        <h3 className="text-md font-semibold text-gray-700 mb-4">Accountants ({accountants.length})</h3>
+                        {accountants.length === 0 ? (
+                            <p className="text-sm text-gray-500 text-center py-4">No accountants found</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {accountants.map((accountant) => (
+                                            <tr key={accountant.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{accountant.name}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{accountant.employeeId}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-teal-100 text-teal-800 border border-teal-200">
+                                                        Accountant
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleEditPassword(accountant)}
+                                                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Password
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteEmployee(accountant)}
+                                                            className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+
+                    <div>
+                        <h3 className="text-md font-semibold text-gray-700 mb-4">View Only Users ({viewOnlyUsers.length})</h3>
+                        {viewOnlyUsers.length === 0 ? (
+                            <p className="text-sm text-gray-500 text-center py-4">No view only users found</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {viewOnlyUsers.map((viewOnly) => (
+                                            <tr key={viewOnly.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{viewOnly.name}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{viewOnly.employeeId}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200">
+                                                        View Only
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleEditPassword(viewOnly)}
+                                                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Password
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteEmployee(viewOnly)}
                                                             className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
                                                         >
                                                             Delete
