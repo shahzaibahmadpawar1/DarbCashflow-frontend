@@ -243,178 +243,217 @@ export const DailyPOReportModal = ({ purchaseOrders, selectedDate, onClose }: Da
             {/* Print Styles */}
             <style>{`
                 @media print {
-                    /* Reset everything for print */
+                    /* Page setup */
+                    @page {
+                        size: A4 portrait;
+                        margin: 15mm;
+                    }
+
+                    /* Reset and color preservation */
                     * {
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
+                        color-adjust: exact !important;
                     }
 
-                    /* Hide everything except the modal */
-                    body * {
-                        visibility: hidden;
+                    /* Hide everything except our content */
+                    body > *:not(.fixed) {
+                        display: none !important;
                     }
-                    
-                    /* Show only the modal and its contents */
-                    .fixed, .fixed * {
-                        visibility: visible;
+
+                    body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: white !important;
                     }
-                    
-                    /* Position modal for print */
+
+                    /* Make modal take full page */
                     .fixed {
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
+                        position: static !important;
+                        inset: 0 !important;
+                        background: white !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
                         width: 100% !important;
                         height: auto !important;
                         max-width: 100% !important;
                         max-height: none !important;
                         overflow: visible !important;
-                        background: white !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
+                        display: block !important;
                     }
 
-                    /* Remove modal styling for print */
+                    /* Remove modal container styling */
                     .fixed > div {
                         max-width: 100% !important;
                         max-height: none !important;
                         box-shadow: none !important;
                         border-radius: 0 !important;
                         overflow: visible !important;
+                        display: block !important;
                     }
 
                     /* Hide buttons and interactive elements */
-                    .print\\:hidden,
-                    button:not(.print-show) {
+                    button,
+                    .print\\:hidden {
                         display: none !important;
                     }
 
-                    /* Header styling */
-                    .print\\:bg-white {
-                        background-color: white !important;
+                    /* Header */
+                    .bg-gradient-to-r {
+                        background: white !important;
+                        border-bottom: 3px solid #3b82f6 !important;
+                        padding: 15px 0 !important;
                     }
-                    
-                    .print\\:text-gray-900 {
+
+                    h2 {
                         color: #111827 !important;
+                        font-size: 20pt !important;
+                        margin: 0 0 5px 0 !important;
                     }
-                    
-                    .print\\:text-gray-600 {
+
+                    /* Date subtitle */
+                    .text-white\\/90 {
                         color: #4b5563 !important;
-                    }
-                    
-                    .print\\:border-b-2 {
-                        border-bottom: 2px solid #e5e7eb !important;
+                        font-size: 11pt !important;
                     }
 
-                    /* Page breaks */
-                    .page-break {
-                        page-break-after: always;
-                        break-after: page;
+                    /* Summary cards section */
+                    .bg-gray-50 {
+                        background: white !important;
+                        padding: 15px 0 !important;
+                        border: none !important;
                     }
 
-                    /* Prevent breaks inside important elements */
-                    .border.border-gray-200.rounded-lg {
-                        page-break-inside: avoid;
-                        break-inside: avoid;
-                    }
-
-                    /* Table styling for print */
-                    table {
-                        width: 100% !important;
-                        border-collapse: collapse !important;
-                        font-size: 10pt !important;
-                    }
-
-                    th {
-                        background-color: #f3f4f6 !important;
-                        border: 1px solid #d1d5db !important;
-                        padding: 8px 4px !important;
-                        font-size: 9pt !important;
-                        font-weight: 600 !important;
-                    }
-
-                    td {
-                        border: 1px solid #e5e7eb !important;
-                        padding: 6px 4px !important;
-                        font-size: 9pt !important;
-                    }
-
-                    /* Summary cards */
+                    /* Summary cards grid */
                     .grid.grid-cols-2 {
                         display: grid !important;
                         grid-template-columns: repeat(4, 1fr) !important;
                         gap: 10px !important;
-                        margin-bottom: 20px !important;
+                        margin-bottom: 15px !important;
                     }
 
-                    /* Station headers */
-                    .bg-gray-100 {
-                        background-color: #f3f4f6 !important;
-                        border: 1px solid #d1d5db !important;
+                    /* Individual summary cards */
+                    .bg-white.rounded-lg {
+                        border: 1px solid #e5e7eb !important;
+                        padding: 10px !important;
+                        page-break-inside: avoid !important;
                     }
 
-                    /* Ensure all content is visible */
-                    .overflow-hidden,
-                    .overflow-y-auto,
-                    .overflow-x-auto {
+                    .border-l-4 {
+                        border-left-width: 4px !important;
+                    }
+
+                    /* Summary card text */
+                    .text-sm.text-gray-600 {
+                        font-size: 8pt !important;
+                        color: #6b7280 !important;
+                    }
+
+                    .text-2xl {
+                        font-size: 14pt !important;
+                    }
+
+                    /* Content area */
+                    .flex-1.overflow-y-auto {
                         overflow: visible !important;
+                        padding: 0 !important;
                     }
 
-                    /* Remove max-height constraints */
-                    .max-h-\\[90vh\\] {
-                        max-height: none !important;
-                    }
-
-                    /* Spacing */
+                    /* Station groups spacing */
                     .space-y-6 > * + * {
                         margin-top: 15px !important;
                     }
 
-                    /* Font sizes */
-                    h1, h2 {
-                        font-size: 18pt !important;
-                        margin-bottom: 10px !important;
+                    /* Station group container */
+                    .border.border-gray-200.rounded-lg {
+                        border: 1px solid #d1d5db !important;
+                        border-radius: 0 !important;
+                        page-break-inside: avoid !important;
+                        margin-bottom: 15px !important;
+                    }
+
+                    /* Station header */
+                    .bg-gray-100 {
+                        background-color: #f3f4f6 !important;
+                        border-bottom: 1px solid #d1d5db !important;
+                        padding: 8px 10px !important;
                     }
 
                     h3 {
                         font-size: 12pt !important;
+                        margin: 0 !important;
                     }
 
-                    /* Page margins */
-                    @page {
-                        size: A4;
-                        margin: 15mm;
+                    /* Station summary text */
+                    .text-sm.text-gray-600 {
+                        font-size: 9pt !important;
+                    }
+
+                    /* Tables */
+                    .overflow-x-auto {
+                        overflow: visible !important;
+                    }
+
+                    table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
+                        font-size: 9pt !important;
+                    }
+
+                    thead {
+                        background-color: #f9fafb !important;
+                    }
+
+                    th {
+                        background-color: #f9fafb !important;
+                        border: 1px solid #d1d5db !important;
+                        padding: 6px 4px !important;
+                        font-size: 8pt !important;
+                        font-weight: 600 !important;
+                        text-align: left !important;
+                    }
+
+                    td {
+                        border: 1px solid #e5e7eb !important;
+                        padding: 5px 4px !important;
+                        font-size: 8pt !important;
+                    }
+
+                    /* Text alignment in tables */
+                    .text-right {
+                        text-align: right !important;
+                    }
+
+                    .text-left {
+                        text-align: left !important;
                     }
 
                     /* Status badges */
                     .rounded-full {
+                        display: inline-block !important;
+                        padding: 2px 6px !important;
+                        border-radius: 10px !important;
+                        font-size: 7pt !important;
                         border: 1px solid currentColor !important;
-                        padding: 2px 8px !important;
-                        font-size: 8pt !important;
                     }
 
-                    /* Ensure colors print */
                     .bg-green-100 {
                         background-color: #dcfce7 !important;
-                    }
-                    
-                    .bg-orange-100 {
-                        background-color: #ffedd5 !important;
                     }
 
                     .text-green-800 {
                         color: #166534 !important;
                     }
 
+                    .bg-orange-100 {
+                        background-color: #ffedd5 !important;
+                    }
+
                     .text-orange-800 {
                         color: #9a3412 !important;
                     }
 
-                    /* Summary card borders */
-                    .border-l-4 {
-                        border-left-width: 4px !important;
-                    }
-
+                    /* Color borders for summary cards */
                     .border-blue-500 {
                         border-left-color: #3b82f6 !important;
                     }
@@ -429,6 +468,52 @@ export const DailyPOReportModal = ({ purchaseOrders, selectedDate, onClose }: Da
 
                     .border-purple-500 {
                         border-left-color: #a855f7 !important;
+                    }
+
+                    /* Text colors for summary cards */
+                    .text-gray-900 {
+                        color: #111827 !important;
+                    }
+
+                    .text-green-600 {
+                        color: #16a34a !important;
+                    }
+
+                    .text-orange-600 {
+                        color: #ea580c !important;
+                    }
+
+                    .text-purple-600 {
+                        color: #9333ea !important;
+                    }
+
+                    .text-blue-600 {
+                        color: #2563eb !important;
+                    }
+
+                    /* Remove any transforms or positioning */
+                    * {
+                        transform: none !important;
+                        position: static !important;
+                    }
+
+                    .fixed,
+                    .fixed > div {
+                        position: static !important;
+                    }
+
+                    /* Ensure no blank pages */
+                    .p-6 {
+                        padding: 0 !important;
+                    }
+
+                    .p-4 {
+                        padding: 0 !important;
+                    }
+
+                    /* Footer - hide it */
+                    .border-t.border-gray-200.bg-gray-50 {
+                        display: none !important;
                     }
                 }
             `}</style>
