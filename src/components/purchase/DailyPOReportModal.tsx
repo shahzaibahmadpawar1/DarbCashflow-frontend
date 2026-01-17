@@ -36,7 +36,168 @@ export const DailyPOReportModal = ({ purchaseOrders, selectedDate, onClose }: Da
     };
 
     const handlePrint = () => {
-        window.print();
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const reportDate = new Date(selectedDate).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Calculate totals
+        const totalAmount = purchaseOrders.reduce((sum, po) => sum + po.purchaseRequest.paymentAmount, 0);
+        const receivedCount = purchaseOrders.filter(po => po.receivedAt).length;
+        const pendingCount = purchaseOrders.length - receivedCount;
+
+        // Group by station
+        const stationGroups = purchaseOrders.reduce((groups, po) => {
+            const stationName = po.purchaseRequest.station.name;
+            if (!groups[stationName]) {
+                groups[stationName] = [];
+            }
+            groups[stationName].push(po);
+            return groups;
+        }, {} as Record<string, typeof purchaseOrders>);
+
+        let stationTablesHTML = '';
+        Object.entries(stationGroups).forEach(([stationName, pos]) => {
+            const stationTotal = pos.reduce((sum, po) => sum + po.purchaseRequest.paymentAmount, 0);
+            const stationQuantity = pos.reduce((sum, po) => sum + po.purchaseRequest.quantityLiters, 0);
+
+            stationTablesHTML += `
+                <div style="margin-bottom: 20px; border: 1px solid #d1d5db; page-break-inside: avoid;">
+                    <div style="background: #f3f4f6; padding: 10px; border-bottom: 1px solid #d1d5db;">
+                        <h3 style="margin: 0; font-size: 14pt;">${stationName}</h3>
+                        <p style="margin: 5px 0 0 0; font-size: 10pt; color: #666;">
+                            ${pos.length} PO${pos.length > 1 ? 's' : ''} • ${stationQuantity.toLocaleString()} L • ${stationTotal.toLocaleString()} SAR
+                        </p>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f9fafb;">
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 9pt;">PO Number</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 9pt;">Fuel Type</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: right; font-size: 9pt;">Quantity (L)</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: right; font-size: 9pt;">Amount (SAR)</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 9pt;">Expected Delivery</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 9pt;">Status</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 9pt;">Issued At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pos.map(po => `
+                                <tr>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt; color: #2563eb;">${po.poNumber}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${getFuelTypeLabel(po.purchaseRequest.fuelType)}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt; text-align: right;">${po.purchaseRequest.quantityLiters.toLocaleString()}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt; text-align: right; font-weight: 600;">${po.purchaseRequest.paymentAmount.toLocaleString()}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${new Date(po.expectedDeliveryDate).toLocaleString()}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">
+                                        <span style="padding: 2px 6px; border-radius: 10px; font-size: 8pt; ${po.receivedAt ? 'background: #dcfce7; color: #166534;' : 'background: #ffedd5; color: #9a3412;'}">
+                                            ${po.receivedAt ? 'Received' : 'Pending'}
+                                        </span>
+                                    </td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${new Date(po.createdAt).toLocaleString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        });
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Daily PO Report - ${new Date(selectedDate).toLocaleDateString()}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            padding: 20px;
+                            margin: 0;
+                        }
+                        h1 {
+                            color: #111827;
+                            border-bottom: 3px solid #3b82f6;
+                            padding-bottom: 10px;
+                            margin: 0 0 5px 0;
+                            font-size: 20pt;
+                        }
+                        .subtitle {
+                            color: #6b7280;
+                            font-size: 11pt;
+                            margin: 0 0 20px 0;
+                        }
+                        .summary-grid {
+                            display: grid;
+                            grid-template-columns: repeat(4, 1fr);
+                            gap: 10px;
+                            margin-bottom: 20px;
+                        }
+                        .summary-card {
+                            border: 1px solid #e5e7eb;
+                            padding: 10px;
+                            border-radius: 4px;
+                        }
+                        .summary-card.blue { border-left: 4px solid #3b82f6; }
+                        .summary-card.green { border-left: 4px solid #22c55e; }
+                        .summary-card.orange { border-left: 4px solid #f97316; }
+                        .summary-card.purple { border-left: 4px solid #a855f7; }
+                        .summary-label {
+                            font-size: 9pt;
+                            color: #6b7280;
+                            margin: 0 0 5px 0;
+                        }
+                        .summary-value {
+                            font-size: 16pt;
+                            font-weight: bold;
+                            margin: 0;
+                        }
+                        .summary-value.blue { color: #111827; }
+                        .summary-value.green { color: #16a34a; }
+                        .summary-value.orange { color: #ea580c; }
+                        .summary-value.purple { color: #9333ea; }
+                        @media print {
+                            button { display: none; }
+                            @page {
+                                size: A4 portrait;
+                                margin: 15mm;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Daily Purchase Order Report</h1>
+                    <p class="subtitle">${reportDate}</p>
+
+                    <div class="summary-grid">
+                        <div class="summary-card blue">
+                            <p class="summary-label">Total POs Issued</p>
+                            <p class="summary-value blue">${purchaseOrders.length}</p>
+                        </div>
+                        <div class="summary-card green">
+                            <p class="summary-label">Received</p>
+                            <p class="summary-value green">${receivedCount}</p>
+                        </div>
+                        <div class="summary-card orange">
+                            <p class="summary-label">Pending</p>
+                            <p class="summary-value orange">${pendingCount}</p>
+                        </div>
+                        <div class="summary-card purple">
+                            <p class="summary-label">Total Amount</p>
+                            <p class="summary-value purple">${totalAmount.toLocaleString()} SAR</p>
+                        </div>
+                    </div>
+
+                    ${stationTablesHTML}
+
+                    <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11pt;">Print Report</button>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
     };
 
     const handleExportCSV = () => {
