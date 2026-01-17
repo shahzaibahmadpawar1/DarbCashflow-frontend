@@ -5,7 +5,7 @@ export interface User {
   id: string;
   employeeId: string;
   name: string;
-  role: 'SM' | 'AM' | 'Admin' | 'OU';
+  role: 'SM' | 'AM' | 'Admin' | 'OU' | 'Accountant' | 'ViewOnly';
   stationId?: string | null;
   areaManagerId?: string | null;
 }

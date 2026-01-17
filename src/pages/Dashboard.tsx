@@ -248,25 +248,28 @@ export const Dashboard = () => {
 
       {/* Module Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link
-          to="/cash-flow"
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover group"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary transition-colors">
-              <svg className="w-6 h-6 text-primary group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        {/* Hide Cash Flow Module from Accountant and ViewOnly users */}
+        {user?.role !== 'Accountant' && user?.role !== 'ViewOnly' && (
+          <Link
+            to="/cash-flow"
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover group"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary transition-colors">
+                <svg className="w-6 h-6 text-primary group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <svg className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
-            <svg className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Cash Flow Module</h2>
-          <p className="text-gray-600">
-            Track revenue and cash movement from station to bank
-          </p>
-        </Link>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Cash Flow Module</h2>
+            <p className="text-gray-600">
+              Track revenue and cash movement from station to bank
+            </p>
+          </Link>
+        )}
 
         <Link
           to="/inventory"
