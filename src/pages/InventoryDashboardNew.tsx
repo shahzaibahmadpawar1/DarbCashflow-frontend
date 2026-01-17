@@ -715,7 +715,7 @@ export const InventoryDashboard = () => {
                         <div class="info-item"><span class="info-label">Liters Delivered:</span> ${delivery.litersDelivered}</div>
                         <div class="info-item"><span class="info-label">Delivery Date:</span> ${deliveryDate}</div>
                         <div class="info-item"><span class="info-label">Delivery Time:</span> ${deliveryTime}</div>
-                        <div class="info-item"><span class="info-label">Aramco Ticket #:</span> ${delivery.aramcoTicket || 'N/A'}</div>
+                        <div class="info-item"><span class="info-label">Aramco Ticket #:</span> ${delivery.invoiceNumber || delivery.aramcoTicket || 'N/A'}</div>
                         <div class="info-item"><span class="info-label">Delivery ID:</span> ${delivery.id}</div>
                     </div>
 
@@ -748,7 +748,7 @@ export const InventoryDashboard = () => {
         csv += `Liters Delivered,${delivery.litersDelivered}\n`;
         csv += `Delivery Date,${deliveryDate}\n`;
         csv += `Delivery Time,${deliveryTime}\n`;
-        csv += `Aramco Ticket Number,${delivery.aramcoTicket || 'N/A'}\n`;
+        csv += `Aramco Ticket Number,${delivery.invoiceNumber || delivery.aramcoTicket || 'N/A'}\n`;
         csv += `Delivery ID,${delivery.id}\n`;
         csv += `Notes,${delivery.notes || 'N/A'}\n`;
         csv += `Receipt URL,${delivery.receiptUrl || 'N/A'}\n`;
