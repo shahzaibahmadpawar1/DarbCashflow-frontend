@@ -130,7 +130,7 @@ export const StationPurchaseRequests = ({ stationId, stationName, onPOReceived }
                                     <div className="flex items-center gap-3 mb-2">
                                         {getStatusBadge(pr.status)}
                                         <span className="text-xs text-gray-500">
-                                            {new Date(pr.createdAt).toLocaleDateString()}
+                                            {new Date(pr.createdAt).toLocaleString()}
                                         </span>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -149,7 +149,7 @@ export const StationPurchaseRequests = ({ stationId, stationName, onPOReceived }
                                         <div>
                                             <p className="text-xs text-gray-500">Delivery Date</p>
                                             <p className="text-sm font-semibold text-gray-900">
-                                                {new Date(pr.requestedDeliveryDate).toLocaleDateString()}
+                                                {new Date(pr.requestedDeliveryDate).toLocaleString()}
                                             </p>
                                         </div>
                                     </div>

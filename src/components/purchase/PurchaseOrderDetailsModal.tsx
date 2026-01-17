@@ -137,7 +137,7 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                             </div>
                             <div>
                                 <p className="text-sm text-gray-600">Expected Delivery</p>
-                                <p className="text-sm font-semibold text-gray-900">{new Date(purchaseOrder.expectedDeliveryDate).toLocaleDateString()}</p>
+                                <p className="text-sm font-semibold text-gray-900">{new Date(purchaseOrder.expectedDeliveryDate).toLocaleString()}</p>
                             </div>
                             {purchaseOrder.purchaseRequest?.receiptUrl && (
                                 <div className="col-span-1 md:col-span-2">
@@ -166,7 +166,7 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                                 <div>
                                     <p className="text-sm text-gray-600">Actual Delivery Date</p>
                                     <p className="text-sm font-semibold text-gray-900">
-                                        {purchaseOrder.actualDeliveryDate ? new Date(purchaseOrder.actualDeliveryDate).toLocaleDateString() : '-'}
+                                        {purchaseOrder.actualDeliveryDate ? new Date(purchaseOrder.actualDeliveryDate).toLocaleString() : '-'}
                                     </p>
                                 </div>
                                 <div>

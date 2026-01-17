@@ -38,7 +38,7 @@ interface PurchaseRequestReviewModalProps {
 export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess, userRole }: PurchaseRequestReviewModalProps) => {
     const [action, setAction] = useState<'approve' | 'reject' | 'verify' | null>(null);
     const [comment, setComment] = useState('');
-    const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(new Date().toISOString().split('T')[0]);
+    const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(new Date().toISOString().slice(0, 16));
     const [submitting, setSubmitting] = useState(false);
 
     const availableCredits = (purchaseRequest.station.totalCreditLimit || 0) - (purchaseRequest.station.utilizedCredits || 0);
@@ -174,7 +174,7 @@ export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess
                             </div>
                             <div>
                                 <p className="text-sm text-gray-600">Request Date</p>
-                                <p className="text-sm font-semibold text-gray-900">{new Date(purchaseRequest.createdAt).toLocaleDateString()}</p>
+                                <p className="text-sm font-semibold text-gray-900">{new Date(purchaseRequest.createdAt).toLocaleString()}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-600">Fuel Type</p>
@@ -196,7 +196,7 @@ export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess
                             </div>
                             <div>
                                 <p className="text-sm text-gray-600">Requested Delivery</p>
-                                <p className="text-sm font-semibold text-gray-900">{new Date(purchaseRequest.requestedDeliveryDate).toLocaleDateString()}</p>
+                                <p className="text-sm font-semibold text-gray-900">{new Date(purchaseRequest.requestedDeliveryDate).toLocaleString()}</p>
                             </div>
                         </div>
                         {purchaseRequest.receiptUrl && (
@@ -326,9 +326,9 @@ export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess
                                 <h4 className="text-md font-semibold text-gray-900 mb-3">Generate Purchase Order</h4>
                                 <div className="space-y-3">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Expected Delivery Date *</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Expected Delivery Date & Time *</label>
                                         <input
-                                            type="date"
+                                            type="datetime-local"
                                             required
                                             value={expectedDeliveryDate}
                                             onChange={(e) => setExpectedDeliveryDate(e.target.value)}

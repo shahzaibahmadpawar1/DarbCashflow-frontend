@@ -334,7 +334,7 @@ export const OfficePurchaseRequests = () => {
                                             </button>
                                         )}
                                         <p className="text-xs text-gray-500 text-center">
-                                            {new Date(pr.createdAt).toLocaleDateString()}
+                                            {new Date(pr.createdAt).toLocaleString()}
                                         </p>
                                     </div>
                                 </div>

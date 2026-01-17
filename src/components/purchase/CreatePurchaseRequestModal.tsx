@@ -24,7 +24,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
         fuelType: '91_GASOLINE' as '91_GASOLINE' | '95_GASOLINE' | 'DIESEL',
         quantityLiters: 0,
         paymentAmount: 0,
-        requestedDeliveryDate: new Date().toISOString().split('T')[0],
+        requestedDeliveryDate: new Date().toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
         receiptUrl: '',
         bankDepositAmount: 0,
         bankDepositReceiptUrl: '',
@@ -258,11 +258,11 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                 </p>
                             </div>
 
-                            {/* Requested Delivery Date */}
+                            {/* Requested Delivery Date & Time */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Requested Delivery Date *</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Requested Delivery Date & Time *</label>
                                 <input
-                                    type="date"
+                                    type="datetime-local"
                                     required
                                     value={formData.requestedDeliveryDate}
                                     onChange={(e) => setFormData({ ...formData, requestedDeliveryDate: e.target.value })}
