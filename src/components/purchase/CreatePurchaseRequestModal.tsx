@@ -40,9 +40,13 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
         try {
             setLoadingCredit(true);
             const res = await api.get(`/api/credit-transactions/${stationId}/summary`);
+            console.log('🔍 Credit Summary API Response:', res.data);
+            console.log('🔍 Has Credit Facility:', res.data?.station?.hasCreditFacility);
+            console.log('🔍 Total Credit Limit:', res.data?.station?.totalCreditLimit);
+            console.log('🔍 Available Credits:', res.data?.station?.availableCredits);
             setCreditSummary(res.data);
         } catch (error) {
-            console.error('Failed to fetch credit summary:', error);
+            console.error('❌ Failed to fetch credit summary:', error);
         } finally {
             setLoadingCredit(false);
         }
