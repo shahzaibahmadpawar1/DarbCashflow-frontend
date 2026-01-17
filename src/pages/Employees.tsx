@@ -674,6 +674,7 @@ export const Employees = () => {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Stations</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
@@ -687,8 +688,30 @@ export const Employees = () => {
                                                         Accountant
                                                     </span>
                                                 </td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">
+                                                    {accountant.assignedStations && accountant.assignedStations.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {accountant.assignedStations.map((assignment) => (
+                                                                <span
+                                                                    key={assignment.station.id}
+                                                                    className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium"
+                                                                >
+                                                                    {assignment.station.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic">No stations assigned</span>
+                                                    )}
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                     <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleAssignOUStations(accountant)}
+                                                            className="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium"
+                                                        >
+                                                            Assign Stations
+                                                        </button>
                                                         <button
                                                             onClick={() => handleEditPassword(accountant)}
                                                             className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
@@ -723,6 +746,7 @@ export const Employees = () => {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Stations</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
@@ -736,8 +760,30 @@ export const Employees = () => {
                                                         View Only
                                                     </span>
                                                 </td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">
+                                                    {viewOnly.assignedStations && viewOnly.assignedStations.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {viewOnly.assignedStations.map((assignment) => (
+                                                                <span
+                                                                    key={assignment.station.id}
+                                                                    className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium"
+                                                                >
+                                                                    {assignment.station.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic">No stations assigned</span>
+                                                    )}
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                     <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleAssignOUStations(viewOnly)}
+                                                            className="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium"
+                                                        >
+                                                            Assign Stations
+                                                        </button>
                                                         <button
                                                             onClick={() => handleEditPassword(viewOnly)}
                                                             className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
