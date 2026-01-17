@@ -15,7 +15,7 @@ interface CreditSummary {
         hasCreditFacility: boolean;
         totalCreditLimit: number;
         utilizedCredits: number;
-        availableCredits: number;
+        availableCredits?: number; // Made optional as it might not be in API response
     };
 }
 
@@ -68,6 +68,23 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
         }
     };
 
+    // Helper to calculate available credits safely
+    const getCreditStatus = () => {
+        if (!creditSummary?.station) return { available: 0, canUse: false };
+
+        const { totalCreditLimit, utilizedCredits, availableCredits, hasCreditFacility } = creditSummary.station;
+
+        // Use provided availableCredits or calculate it manually
+        const calculatedAvailable = availableCredits ?? (totalCreditLimit - utilizedCredits);
+
+        const canUse = hasCreditFacility && calculatedAvailable >= formData.paymentAmount;
+
+        return {
+            available: calculatedAvailable,
+            canUse
+        };
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -76,11 +93,10 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
             return;
         }
 
-        // Check receipt requirement
-        const canUseCredits = creditSummary?.station.hasCreditFacility &&
-            creditSummary.station.availableCredits >= formData.paymentAmount;
+        // Check receipt requirement using helper
+        const { canUse } = getCreditStatus();
 
-        if (!canUseCredits && !formData.receiptUrl) {
+        if (!canUse && !formData.receiptUrl) {
             alert('Receipt is required for stations without sufficient credits');
             return;
         }
@@ -111,8 +127,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
         }
     };
 
-    const canUseCredits = creditSummary?.station.hasCreditFacility &&
-        creditSummary.station.availableCredits >= formData.paymentAmount;
+    const { available: availableCredits, canUse: canUseCredits } = getCreditStatus();
     const receiptRequired = !canUseCredits;
 
     return (
@@ -141,9 +156,9 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                             <p className="text-sm text-blue-700">Loading credit information...</p>
                         </div>
                     ) : creditSummary?.station.hasCreditFacility ? (
-                        <div className={`border rounded-lg p-4 mb-4 ${creditSummary.station.availableCredits >= formData.paymentAmount
-                                ? 'bg-green-50 border-green-200'
-                                : 'bg-orange-50 border-orange-200'
+                        <div className={`border rounded-lg p-4 mb-4 ${canUseCredits
+                            ? 'bg-green-50 border-green-200'
+                            : 'bg-orange-50 border-orange-200'
                             }`}>
                             <h4 className="text-sm font-semibold mb-2">Credit Status</h4>
                             <div className="grid grid-cols-3 gap-4 text-sm">
@@ -157,7 +172,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                 </div>
                                 <div>
                                     <p className="text-gray-600">Available</p>
-                                    <p className="font-bold text-green-600">{creditSummary.station.availableCredits.toLocaleString()} SAR</p>
+                                    <p className="font-bold text-green-600">{availableCredits.toLocaleString()} SAR</p>
                                 </div>
                             </div>
                             {canUseCredits ? (
@@ -281,7 +296,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                     <div className="flex justify-between pt-2 border-t border-gray-200">
                                         <span className="text-gray-600">Credits After:</span>
                                         <span className="font-medium text-gray-900">
-                                            {(creditSummary.station.availableCredits - formData.paymentAmount).toLocaleString()} SAR
+                                            {(availableCredits - formData.paymentAmount).toLocaleString()} SAR
                                         </span>
                                     </div>
                                 )}
@@ -311,5 +326,3 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
         </div>
     );
 };
-
-
