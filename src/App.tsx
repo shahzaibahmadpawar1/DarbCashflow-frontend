@@ -101,7 +101,7 @@ function App() {
         <Route
           path="/purchase-requests"
           element={
-            <ProtectedRoute allowedRoles={['OU', 'Admin']}>
+            <ProtectedRoute allowedRoles={['OU', 'Admin', 'Accountant']}>
               <Layout>
                 <OfficePurchaseRequests />
               </Layout>
