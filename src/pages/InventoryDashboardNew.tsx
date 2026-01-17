@@ -5,6 +5,7 @@ import api from '../services/api';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { AdminInventoryView } from '../components/inventory/AdminInventoryView';
 import { StationPurchaseRequests } from '../components/StationPurchaseRequests';
+import { CreditHistoryModal } from '../components/CreditHistoryModal';
 
 interface DailyShiftReading {
     id: string;
@@ -80,6 +81,7 @@ export const InventoryDashboard = () => {
     // History modals
     const [showShiftHistory, setShowShiftHistory] = useState(false);
     const [showTankerHistory, setShowTankerHistory] = useState(false);
+    const [showCreditHistory, setShowCreditHistory] = useState(false);
     const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
     const [showConsumptionReport, setShowConsumptionReport] = useState(false);
     const [showPurchaseRequests, setShowPurchaseRequests] = useState(false);
@@ -948,10 +950,14 @@ export const InventoryDashboard = () => {
                                 </svg>
                             </div>
                         </div>
-                        <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 flex justify-between items-center">
+                        <div
+                            onClick={() => setShowCreditHistory(true)}
+                            className="p-4 bg-purple-50 rounded-lg border border-purple-100 flex justify-between items-center cursor-pointer hover:bg-purple-100 transition-colors"
+                        >
                             <div>
                                 <p className="text-sm text-gray-600 mb-1">Purchase Credits</p>
                                 <p className="text-2xl font-bold text-purple-700">{stationCredits.toLocaleString()} SAR</p>
+                                <p className="text-xs text-purple-600 mt-1">Click to view history</p>
                             </div>
                             <div className="p-3 bg-purple-100 rounded-full text-purple-600">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2154,6 +2160,15 @@ export const InventoryDashboard = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Credit History Modal */}
+            {showCreditHistory && (
+                <CreditHistoryModal
+                    stationId={stationId}
+                    stationName="Your Station"
+                    onClose={() => setShowCreditHistory(false)}
+                />
             )}
         </div>
     );
