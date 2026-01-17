@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { PurchaseRequestReviewModal } from '../components/purchase/PurchaseRequestReviewModal';
+import { DailyPOReportModal } from '../components/purchase/DailyPOReportModal';
 import { useAuth } from '../hooks/useAuth';
 
 interface PurchaseRequest {
@@ -40,6 +41,9 @@ export const OfficePurchaseRequests = () => {
     const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED'>('all');
     const [categoryFilter, setCategoryFilter] = useState<'all' | 'OPERATIONAL' | 'RENTAL' | 'FRANCHISE'>('all');
     const [verifying, setVerifying] = useState<string | null>(null);
+    const [showDailyReport, setShowDailyReport] = useState(false);
+    const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
+    const [dailyPOs, setDailyPOs] = useState<any[]>([]);
 
     const isAccountant = user?.role === 'Accountant';
     const isAdmin = user?.role === 'Admin';
@@ -70,6 +74,16 @@ export const OfficePurchaseRequests = () => {
             alert(error.response?.data?.error || 'Failed to verify payment');
         } finally {
             setVerifying(null);
+        }
+    };
+
+    const loadDailyPOs = async (date: string) => {
+        try {
+            const res = await api.get(`/api/purchase-orders/daily-report?date=${date}`);
+            setDailyPOs(res.data);
+            setShowDailyReport(true);
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to load daily PO report');
         }
     };
 
@@ -124,6 +138,25 @@ export const OfficePurchaseRequests = () => {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Purchase Requests</h1>
                         <p className="text-gray-600 mt-1">Review and manage fuel purchase requests</p>
+                    </div>
+
+                    {/* Daily PO Report Button */}
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="date"
+                            value={reportDate}
+                            onChange={(e) => setReportDate(e.target.value)}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <button
+                            onClick={() => loadDailyPOs(reportDate)}
+                            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium whitespace-nowrap"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Daily PO Report
+                        </button>
                     </div>
                 </div>
 
@@ -353,6 +386,15 @@ export const OfficePurchaseRequests = () => {
                         loadPurchaseRequests();
                         setSelectedPR(null);
                     }}
+                />
+            )}
+
+            {/* Daily PO Report Modal */}
+            {showDailyReport && (
+                <DailyPOReportModal
+                    purchaseOrders={dailyPOs}
+                    selectedDate={reportDate}
+                    onClose={() => setShowDailyReport(false)}
                 />
             )}
         </div>
