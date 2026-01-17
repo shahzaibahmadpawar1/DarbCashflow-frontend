@@ -26,6 +26,8 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
         paymentAmount: 0,
         requestedDeliveryDate: new Date().toISOString().split('T')[0],
         receiptUrl: '',
+        bankDepositAmount: 0,
+        bankDepositReceiptUrl: '',
     });
     const [uploading, setUploading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -239,6 +241,23 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                 />
                             </div>
 
+                            {/* Bank Deposit */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Bank Deposit (SAR)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={formData.bankDepositAmount || ''}
+                                    onChange={(e) => setFormData({ ...formData, bankDepositAmount: parseFloat(e.target.value) || 0 })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    placeholder="Enter deposit amount (optional)"
+                                />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    💡 Bank deposits will be added to your available credits
+                                </p>
+                            </div>
+
                             {/* Requested Delivery Date */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Requested Delivery Date *</label>
@@ -290,6 +309,12 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                     <span className="text-gray-600">Payment:</span>
                                     <span className="font-medium text-gray-900">{formData.paymentAmount.toLocaleString()} SAR</span>
                                 </div>
+                                {formData.bankDepositAmount > 0 && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Bank Deposit:</span>
+                                        <span className="font-medium text-green-600">+{formData.bankDepositAmount.toLocaleString()} SAR</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Payment Method:</span>
                                     <span className={`font-medium ${canUseCredits ? 'text-green-600' : 'text-orange-600'}`}>
