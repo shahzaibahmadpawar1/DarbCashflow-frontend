@@ -1241,6 +1241,7 @@ export const InventoryDashboard = () => {
                     <StationPurchaseRequests
                         stationId={stationId}
                         stationName="Your Station"
+                        onPOReceived={() => loadCurrentShift(stationId)}
                     />
                 </div>
             )}

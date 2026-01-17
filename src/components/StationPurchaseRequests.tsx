@@ -34,9 +34,10 @@ interface PurchaseRequest {
 interface StationPurchaseRequestsProps {
     stationId: string;
     stationName: string;
+    onPOReceived?: () => void;
 }
 
-export const StationPurchaseRequests = ({ stationId, stationName }: StationPurchaseRequestsProps) => {
+export const StationPurchaseRequests = ({ stationId, stationName, onPOReceived }: StationPurchaseRequestsProps) => {
     const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -223,7 +224,10 @@ export const StationPurchaseRequests = ({ stationId, stationName }: StationPurch
                 <PurchaseOrderDetailsModal
                     purchaseOrder={selectedPO}
                     onClose={() => setSelectedPO(null)}
-                    onSuccess={loadPurchaseRequests}
+                    onSuccess={() => {
+                        loadPurchaseRequests();
+                        onPOReceived?.(); // Notify parent to reload tanks
+                    }}
                 />
             )}
         </div>
