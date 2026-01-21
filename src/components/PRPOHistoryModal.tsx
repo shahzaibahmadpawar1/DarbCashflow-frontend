@@ -23,6 +23,15 @@ interface PurchaseRequest {
         invoiceNumber?: string;
         invoiceUrl?: string;
         receivedAt?: string;
+        procurementConfirmedAt?: string;
+        aramcoPoNumber?: string;
+        aramcoPoDate?: string;
+        aramcoPoUrl?: string;
+        receivedQuantityLiters?: number;
+        receivedAmount?: number;
+        creditVariance?: number;
+        actualTransportationCost?: number;
+        transporter?: { name: string };
     };
 }
 
@@ -58,6 +67,7 @@ export const PRPOHistoryModal = ({ stationId, stationName, onClose }: PRPOHistor
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -93,6 +103,7 @@ export const PRPOHistoryModal = ({ stationId, stationName, onClose }: PRPOHistor
                     paymentAmount: request.paymentAmount,
                     requestedDeliveryDate: request.requestedDeliveryDate,
                     receiptUrl: request.receiptUrl,
+                    station: { name: stationName }
                 }
             });
             setShowPOModal(true);

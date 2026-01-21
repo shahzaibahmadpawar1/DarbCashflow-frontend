@@ -5,7 +5,7 @@ interface User {
     id: string;
     name: string;
     employeeId: string;
-    role: 'Admin' | 'SM' | 'AM' | 'OU' | 'Accountant' | 'ViewOnly';
+    role: 'Admin' | 'SM' | 'AM' | 'OU' | 'Accountant' | 'ViewOnly' | 'Procurement';
     station?: { name: string; id: string };
     areaManager?: { id: string; name: string };
     assignedStations?: Array<{ station: { id: string; name: string } }>;
@@ -78,7 +78,7 @@ export const Employees = () => {
             };
 
             // Only add stationId and areaManagerId for Station Managers
-            if (formData.role === 'SM') {
+            if (formData.role === 'SM' || formData.role === 'Procurement') {
                 if (formData.stationId) payload.stationId = formData.stationId;
                 if (formData.areaManagerId) payload.areaManagerId = formData.areaManagerId;
             }
@@ -276,6 +276,7 @@ export const Employees = () => {
     const officeUsers = users.filter(u => u.role === 'OU');
     const accountants = users.filter(u => u.role === 'Accountant');
     const viewOnlyUsers = users.filter(u => u.role === 'ViewOnly');
+    const procurementUsers = users.filter(u => u.role === 'Procurement');
 
     return (
         <div className="space-y-6">
@@ -336,6 +337,7 @@ export const Employees = () => {
                                     <option value="AM">Area Manager</option>
                                     <option value="Admin">Admin</option>
                                     <option value="OU">Office User</option>
+                                    <option value="Procurement">Procurement</option>
                                     <option value="Accountant">Accountant</option>
                                     <option value="ViewOnly">View Only</option>
                                 </select>
@@ -353,13 +355,13 @@ export const Employees = () => {
                             {formData.role === 'SM' && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Department (optional)</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Station *</label>
                                         <select
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                                             value={formData.stationId}
                                             onChange={(e) => setFormData({ ...formData, stationId: e.target.value })}
                                         >
-                                            <option value="">Select a department</option>
+                                            <option value="">Select a station</option>
                                             {stations.map(s => (
                                                 <option key={s.id} value={s.id}>{s.name}</option>
                                             ))}
@@ -792,6 +794,78 @@ export const Employees = () => {
                                                         </button>
                                                         <button
                                                             onClick={() => handleDeleteEmployee(viewOnly)}
+                                                            className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+
+                    <div>
+                        <h3 className="text-md font-semibold text-gray-700 mb-4">Procurement ({procurementUsers.length})</h3>
+                        {procurementUsers.length === 0 ? (
+                            <p className="text-sm text-gray-500 text-center py-4">No procurement users found</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Stations</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {procurementUsers.map((proc) => (
+                                            <tr key={proc.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{proc.name}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{proc.employeeId}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                                        Procurement
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">
+                                                    {proc.assignedStations && proc.assignedStations.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {proc.assignedStations.map((assignment) => (
+                                                                <span
+                                                                    key={assignment.station.id}
+                                                                    className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium"
+                                                                >
+                                                                    {assignment.station.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic">No stations assigned</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleAssignOUStations(proc)}
+                                                            className="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium"
+                                                        >
+                                                            Assign Stations
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleEditPassword(proc)}
+                                                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                                                        >
+                                                            Password
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteEmployee(proc)}
                                                             className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
                                                         >
                                                             Delete

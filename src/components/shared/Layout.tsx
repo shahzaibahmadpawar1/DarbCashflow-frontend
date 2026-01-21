@@ -46,11 +46,14 @@ export const Layout = ({ children }: LayoutProps) => {
   const isActive = (path: string) => location.pathname === path;
 
   const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['Admin', 'AM', 'SM', 'OU', 'Accountant', 'ViewOnly'] },
+    { path: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['Admin', 'AM', 'SM', 'OU', 'Accountant', 'ViewOnly', 'Procurement'] },
     { path: '/cash-flow', label: 'Cash Flow', icon: '💰', roles: ['Admin', 'AM', 'SM'] },
     { path: '/inventory', label: 'Inventory', icon: '📦', roles: ['Admin', 'AM', 'SM', 'OU', 'ViewOnly'] },
     { path: '/purchase-requests', label: 'Purchase Requests', icon: '📝', roles: ['Admin', 'OU', 'Accountant'] },
+    { path: '/procurement', label: 'Procurement', icon: '📋', roles: ['Admin', 'Procurement'] },
     { path: '/floating-cash', label: 'Floating Cash', icon: '💵', roles: ['Admin'] },
+    { path: '/admin/fuel-buying-rates', label: 'Fuel Buying Rates', icon: '⛽', roles: ['Admin'] },
+    { path: '/admin/transporters', label: 'Transporters', icon: '🚚', roles: ['Admin'] },
     { path: '/employees', label: 'Employees', icon: '👥', roles: ['Admin'] },
     { path: '/stations', label: 'Stations', icon: '🏢', roles: ['Admin'] },
     { path: '/organization', label: 'Organization', icon: '🌳', roles: ['Admin'] },
@@ -78,6 +81,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const effectiveIsOU = userRole === 'OU' || isOfficeUser;
   const effectiveIsAccountant = userRole === 'Accountant';
   const effectiveIsViewOnly = userRole === 'ViewOnly';
+  const effectiveIsProcurement = userRole === 'Procurement';
 
   const filteredMenuItems = menuItems.filter(item => {
     if (item.roles.includes('Admin') && effectiveIsAdmin) return true;
@@ -86,6 +90,7 @@ export const Layout = ({ children }: LayoutProps) => {
     if (item.roles.includes('OU') && effectiveIsOU) return true;
     if (item.roles.includes('Accountant') && effectiveIsAccountant) return true;
     if (item.roles.includes('ViewOnly') && effectiveIsViewOnly) return true;
+    if (item.roles.includes('Procurement') && effectiveIsProcurement) return true;
     return false;
   });
 
@@ -125,7 +130,7 @@ export const Layout = ({ children }: LayoutProps) => {
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900">Darb Station</h1>
-              <p className="text-xs text-gray-500">Cash Flow Management System</p>
+              <p className="text-xs text-gray-500">Fuel Management System</p>
             </div>
           </div>
 
@@ -138,7 +143,8 @@ export const Layout = ({ children }: LayoutProps) => {
                     user?.role === 'OU' ? 'Office User' :
                       user?.role === 'Accountant' ? 'Accountant' :
                         user?.role === 'ViewOnly' ? 'View Only' :
-                          'Station Manager'
+                          user?.role === 'Procurement' ? 'Procurement' :
+                            'Station Manager'
               }
             </div>
             <Link

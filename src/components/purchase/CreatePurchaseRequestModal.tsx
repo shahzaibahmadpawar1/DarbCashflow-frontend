@@ -15,16 +15,16 @@ interface CreditSummary {
         hasCreditFacility: boolean;
         totalCreditLimit: number;
         utilizedCredits: number;
-        availableCredits?: number; // Made optional as it might not be in API response
+        availableCredits?: number;
+        transportationCost?: number;
     };
 }
 
 export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, onSuccess }: CreatePurchaseRequestModalProps) => {
     const [formData, setFormData] = useState({
-        fuelType: '91_GASOLINE' as '91_GASOLINE' | '95_GASOLINE' | 'DIESEL',
+        fuelType: '91_GASOLINE' as '91_GASOLINE' | '95_GASOLINE' | '98_GASOLINE' | 'DIESEL',
         quantityLiters: 0,
-        paymentAmount: 0,
-        requestedDeliveryDate: new Date().toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
+        requestedDeliveryDate: new Date().toISOString().slice(0, 16),
         receiptUrl: '',
         bankDepositAmount: 0,
         bankDepositReceiptUrl: '',
@@ -33,26 +33,53 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
     const [submitting, setSubmitting] = useState(false);
     const [creditSummary, setCreditSummary] = useState<CreditSummary | null>(null);
     const [loadingCredit, setLoadingCredit] = useState(true);
+    const [buyingRate, setBuyingRate] = useState<number | null>(null);
+    const [loadingRate, setLoadingRate] = useState(false);
+    const [transportationCost, setTransportationCost] = useState(0);
 
     useEffect(() => {
         fetchCreditSummary();
     }, [stationId]);
 
+    useEffect(() => {
+        if (formData.fuelType && stationId) {
+            fetchBuyingRate();
+        }
+    }, [formData.fuelType, stationId]);
+
     const fetchCreditSummary = async () => {
         try {
             setLoadingCredit(true);
             const res = await api.get(`/api/credit-transactions/${stationId}/summary`);
-            console.log('🔍 Credit Summary API Response:', res.data);
-            console.log('🔍 Has Credit Facility:', res.data?.station?.hasCreditFacility);
-            console.log('🔍 Total Credit Limit:', res.data?.station?.totalCreditLimit);
-            console.log('🔍 Available Credits:', res.data?.station?.availableCredits);
             setCreditSummary(res.data);
+            setTransportationCost(res.data.station.transportationCost || 0);
         } catch (error) {
-            console.error('❌ Failed to fetch credit summary:', error);
+            console.error('Failed to fetch credit summary:', error);
         } finally {
             setLoadingCredit(false);
         }
     };
+
+    const fetchBuyingRate = async () => {
+        try {
+            setLoadingRate(true);
+            const res = await api.get(`/api/fuel-buying-rates/station/${stationId}/${formData.fuelType}`);
+            setBuyingRate(res.data.rate.buyingPricePerLiter);
+        } catch (error) {
+            console.error('Failed to fetch buying rate:', error);
+            setBuyingRate(null);
+        } finally {
+            setLoadingRate(false);
+        }
+    };
+
+    const calculateTotalAmount = () => {
+        if (!buyingRate || formData.quantityLiters <= 0) return 0;
+        const fuelCost = formData.quantityLiters * buyingRate;
+        return fuelCost + transportationCost;
+    };
+
+    const totalAmount = calculateTotalAmount();
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -74,16 +101,12 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
         }
     };
 
-    // Helper to calculate available credits safely
     const getCreditStatus = () => {
         if (!creditSummary?.station) return { available: 0, canUse: false };
 
         const { totalCreditLimit, utilizedCredits, availableCredits, hasCreditFacility } = creditSummary.station;
-
-        // Use provided availableCredits or calculate it manually
         const calculatedAvailable = availableCredits ?? (totalCreditLimit - utilizedCredits);
-
-        const canUse = hasCreditFacility && calculatedAvailable >= formData.paymentAmount;
+        const canUse = hasCreditFacility && calculatedAvailable >= totalAmount;
 
         return {
             available: calculatedAvailable,
@@ -94,12 +117,16 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (formData.quantityLiters <= 0 || formData.paymentAmount <= 0) {
-            alert('Please enter valid quantity and payment amount');
+        if (formData.quantityLiters <= 0) {
+            alert('Please enter valid quantity');
             return;
         }
 
-        // Check receipt requirement using helper
+        if (!buyingRate) {
+            alert('Buying rate not set for this fuel type. Please contact admin.');
+            return;
+        }
+
         const { canUse } = getCreditStatus();
 
         if (!canUse && !formData.receiptUrl) {
@@ -111,7 +138,12 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
             setSubmitting(true);
             await api.post('/api/purchase-requests', {
                 stationId,
-                ...formData,
+                fuelType: formData.fuelType,
+                quantityLiters: formData.quantityLiters,
+                requestedDeliveryDate: formData.requestedDeliveryDate,
+                receiptUrl: formData.receiptUrl,
+                bankDepositAmount: formData.bankDepositAmount,
+                bankDepositReceiptUrl: formData.bankDepositReceiptUrl,
             });
 
             alert('Purchase request created successfully!');
@@ -128,6 +160,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -207,6 +240,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                 >
                                     <option value="91_GASOLINE">91 Gasoline</option>
                                     <option value="95_GASOLINE">95 Gasoline</option>
+                                    <option value="98_GASOLINE">98 Gasoline</option>
                                     <option value="DIESEL">Diesel</option>
                                 </select>
                             </div>
@@ -225,22 +259,49 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                     placeholder="Enter quantity"
                                 />
                             </div>
+                        </div>
 
-                            {/* Payment Amount */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Payment Amount (SAR) *</label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="0.01"
-                                    step="0.01"
-                                    value={formData.paymentAmount || ''}
-                                    onChange={(e) => setFormData({ ...formData, paymentAmount: parseFloat(e.target.value) || 0 })}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                    placeholder="Enter amount"
-                                />
-                            </div>
+                        {/* Auto-Calculated Amount Display */}
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-3">Amount Calculation</h4>
+                            {loadingRate ? (
+                                <p className="text-sm text-gray-600">Loading buying rate...</p>
+                            ) : !buyingRate ? (
+                                <div className="bg-red-50 border border-red-200 rounded p-3">
+                                    <p className="text-sm text-red-700">⚠ Buying rate not set for {getFuelTypeLabel(formData.fuelType)}. Please contact admin.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Buying Rate:</span>
+                                        <span className="font-medium text-gray-900">{buyingRate.toFixed(2)} SAR/L</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Quantity:</span>
+                                        <span className="font-medium text-gray-900">{formData.quantityLiters.toLocaleString()} L</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Fuel Cost:</span>
+                                        <span className="font-medium text-gray-900">
+                                            {(formData.quantityLiters * buyingRate).toLocaleString()} SAR
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Transportation:</span>
+                                        <span className="font-medium text-gray-900">{transportationCost.toLocaleString()} SAR</span>
+                                    </div>
+                                    <div className="flex justify-between pt-2 border-t border-gray-300">
+                                        <span className="font-semibold text-gray-900">Total Amount:</span>
+                                        <span className="font-bold text-primary text-lg">{totalAmount.toLocaleString()} SAR</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        = ({formData.quantityLiters.toLocaleString()} × {buyingRate.toFixed(2)}) + {transportationCost}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
 
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Bank Deposit */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Bank Deposit (SAR)</label>
@@ -293,45 +354,6 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                             )}
                         </div>
 
-                        {/* Summary */}
-                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-2">Request Summary</h4>
-                            <div className="space-y-1 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Fuel Type:</span>
-                                    <span className="font-medium text-gray-900">{getFuelTypeLabel(formData.fuelType)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Quantity:</span>
-                                    <span className="font-medium text-gray-900">{formData.quantityLiters.toLocaleString()} L</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Payment:</span>
-                                    <span className="font-medium text-gray-900">{formData.paymentAmount.toLocaleString()} SAR</span>
-                                </div>
-                                {formData.bankDepositAmount > 0 && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Bank Deposit:</span>
-                                        <span className="font-medium text-green-600">+{formData.bankDepositAmount.toLocaleString()} SAR</span>
-                                    </div>
-                                )}
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Payment Method:</span>
-                                    <span className={`font-medium ${canUseCredits ? 'text-green-600' : 'text-orange-600'}`}>
-                                        {canUseCredits ? 'Using Credits' : 'Cash Payment'}
-                                    </span>
-                                </div>
-                                {canUseCredits && creditSummary && (
-                                    <div className="flex justify-between pt-2 border-t border-gray-200">
-                                        <span className="text-gray-600">Credits After:</span>
-                                        <span className="font-medium text-gray-900">
-                                            {(availableCredits - formData.paymentAmount).toLocaleString()} SAR
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
                         {/* Actions */}
                         <div className="flex gap-3 pt-4">
                             <button
@@ -343,7 +365,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                             </button>
                             <button
                                 type="submit"
-                                disabled={submitting || uploading}
+                                disabled={submitting || uploading || !buyingRate}
                                 className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {submitting ? 'Creating...' : 'Create Request'}

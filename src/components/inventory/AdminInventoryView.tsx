@@ -11,6 +11,7 @@ interface AdminStationStats {
     fuelBreakdown: {
         gasoline91: { liters: number; amount: number };
         gasoline95: { liters: number; amount: number };
+        gasoline98: { liters: number; amount: number };
         diesel: { liters: number; amount: number };
     };
 }

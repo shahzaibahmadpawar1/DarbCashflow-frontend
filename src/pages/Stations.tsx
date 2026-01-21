@@ -26,6 +26,7 @@ export const Stations = () => {
     const [newStationPrices, setNewStationPrices] = useState<FuelPrice[]>([
         { fuelType: '91_GASOLINE', pricePerLiter: '' },
         { fuelType: '95_GASOLINE', pricePerLiter: '' },
+        { fuelType: '98_GASOLINE', pricePerLiter: '' },
         { fuelType: 'DIESEL', pricePerLiter: '' },
     ]);
 
@@ -35,6 +36,7 @@ export const Stations = () => {
     const [fuelPrices, setFuelPrices] = useState<FuelPrice[]>([
         { fuelType: '91_GASOLINE', pricePerLiter: '' },
         { fuelType: '95_GASOLINE', pricePerLiter: '' },
+        { fuelType: '98_GASOLINE', pricePerLiter: '' },
         { fuelType: 'DIESEL', pricePerLiter: '' },
     ]);
 
@@ -100,6 +102,7 @@ export const Stations = () => {
             setNewStationPrices([
                 { fuelType: '91_GASOLINE', pricePerLiter: '' },
                 { fuelType: '95_GASOLINE', pricePerLiter: '' },
+                { fuelType: '98_GASOLINE', pricePerLiter: '' },
                 { fuelType: 'DIESEL', pricePerLiter: '' },
             ]);
             loadStations();
@@ -115,6 +118,7 @@ export const Stations = () => {
         setFuelPrices([
             { fuelType: '91_GASOLINE', pricePerLiter: '' },
             { fuelType: '95_GASOLINE', pricePerLiter: '' },
+            { fuelType: '98_GASOLINE', pricePerLiter: '' },
             { fuelType: 'DIESEL', pricePerLiter: '' },
         ]);
     };
@@ -182,6 +186,7 @@ export const Stations = () => {
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -317,6 +322,7 @@ export const Stations = () => {
                                     setNewStationPrices([
                                         { fuelType: '91_GASOLINE', pricePerLiter: '' },
                                         { fuelType: '95_GASOLINE', pricePerLiter: '' },
+                                        { fuelType: '98_GASOLINE', pricePerLiter: '' },
                                         { fuelType: 'DIESEL', pricePerLiter: '' },
                                     ]);
                                 }}
@@ -338,9 +344,8 @@ export const Stations = () => {
                     return (
                         <div
                             key={station.id}
-                            className={`bg-white rounded-xl shadow-sm border-2 transition-all duration-200 card-hover ${
-                                isSelected ? 'border-primary' : 'border-gray-200'
-                            }`}
+                            className={`bg-white rounded-xl shadow-sm border-2 transition-all duration-200 card-hover ${isSelected ? 'border-primary' : 'border-gray-200'
+                                }`}
                             onClick={() => setSelectedStationCard(station.id)}
                         >
                             <div className="p-6">

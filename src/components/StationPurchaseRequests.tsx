@@ -21,12 +21,27 @@ interface PurchaseRequest {
         invoiceNumber?: string;
         invoiceUrl?: string;
         receivedAt?: string;
+        procurementConfirmedAt?: string;
+        aramcoPoNumber?: string;
+        aramcoPoDate?: string;
+        aramcoPoUrl?: string;
+        receivedQuantityLiters?: number;
+        receivedAmount?: number;
+        creditVariance?: number;
+        actualTransportationCost?: number;
+        transporter?: { name: string };
         purchaseRequest: {
             fuelType: string;
             quantityLiters: number;
+            buyingPricePerLiter: number;
+            transportationCost: number;
+            totalAmount: number;
             paymentAmount: number;
             requestedDeliveryDate: string;
             receiptUrl?: string;
+            station: {
+                name: string;
+            };
         };
     };
 }
@@ -63,6 +78,7 @@ export const StationPurchaseRequests = ({ stationId, stationName, onPOReceived }
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -188,16 +204,24 @@ export const StationPurchaseRequests = ({ stationId, stationName, onPOReceived }
 
                                 {pr.purchaseOrder && (
                                     <button
-                                        onClick={() => setSelectedPO({
-                                            ...pr.purchaseOrder,
-                                            purchaseRequest: {
-                                                fuelType: pr.fuelType,
-                                                quantityLiters: pr.quantityLiters,
-                                                paymentAmount: pr.paymentAmount,
-                                                requestedDeliveryDate: pr.requestedDeliveryDate,
-                                                receiptUrl: pr.receiptUrl,
-                                            }
-                                        })}
+                                        onClick={() => {
+                                            if (!pr.purchaseOrder) return;
+                                            setSelectedPO({
+                                                ...pr.purchaseOrder,
+                                                purchaseRequest: {
+                                                    ...pr.purchaseOrder.purchaseRequest,
+                                                    fuelType: pr.fuelType,
+                                                    quantityLiters: pr.quantityLiters,
+                                                    buyingPricePerLiter: (pr as any).buyingPricePerLiter,
+                                                    transportationCost: (pr as any).transportationCost,
+                                                    totalAmount: (pr as any).totalAmount || pr.paymentAmount,
+                                                    paymentAmount: pr.paymentAmount,
+                                                    requestedDeliveryDate: pr.requestedDeliveryDate,
+                                                    receiptUrl: pr.receiptUrl,
+                                                    station: (pr as any).station || { name: stationName }
+                                                }
+                                            });
+                                        }}
                                         className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium text-sm whitespace-nowrap"
                                     >
                                         View PO

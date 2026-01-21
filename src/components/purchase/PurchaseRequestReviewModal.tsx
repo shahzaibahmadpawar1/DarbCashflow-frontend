@@ -109,6 +109,7 @@ export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }

@@ -5,7 +5,7 @@ export interface User {
   id: string;
   employeeId: string;
   name: string;
-  role: 'SM' | 'AM' | 'Admin' | 'OU' | 'Accountant' | 'ViewOnly';
+  role: 'SM' | 'AM' | 'Admin' | 'OU' | 'Accountant' | 'ViewOnly' | 'Procurement';
   stationId?: string | null;
   areaManagerId?: string | null;
 }
@@ -59,6 +59,7 @@ export const useAuth = () => {
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'Admin';
   const isOfficeUser = user?.role === 'OU';
+  const isProcurement = user?.role === 'Procurement';
   // Role checks (not including admin in SM/AM checks for dashboard display)
   const isSM = user?.role === 'SM';
   const isAM = user?.role === 'AM';
@@ -76,6 +77,7 @@ export const useAuth = () => {
     isAuthenticated,
     isAdmin,
     isOfficeUser,
+    isProcurement,
     isSM,
     isAM,
     canManageStation,

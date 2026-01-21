@@ -10,6 +10,7 @@ interface FuelTypeSummary {
 interface InventorySummary {
     '91_GASOLINE': FuelTypeSummary;
     '95_GASOLINE': FuelTypeSummary;
+    '98_GASOLINE': FuelTypeSummary;
     'DIESEL': FuelTypeSummary;
 }
 
@@ -32,7 +33,7 @@ interface StationDelivery {
 export const FuelTankInventoryDashboard = () => {
     const [summary, setSummary] = useState<InventorySummary | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedFuelType, setSelectedFuelType] = useState<'91_GASOLINE' | '95_GASOLINE' | 'DIESEL' | null>(null);
+    const [selectedFuelType, setSelectedFuelType] = useState<'91_GASOLINE' | '95_GASOLINE' | '98_GASOLINE' | 'DIESEL' | null>(null);
     const [fuelTypeDetails, setFuelTypeDetails] = useState<any>(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
@@ -72,7 +73,7 @@ export const FuelTankInventoryDashboard = () => {
         }
     };
 
-    const handleFuelTypeClick = async (fuelType: '91_GASOLINE' | '95_GASOLINE' | 'DIESEL') => {
+    const handleFuelTypeClick = async (fuelType: '91_GASOLINE' | '95_GASOLINE' | '98_GASOLINE' | 'DIESEL') => {
         try {
             setSelectedFuelType(fuelType);
             setLoadingDetails(true);
@@ -104,6 +105,7 @@ export const FuelTankInventoryDashboard = () => {
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -125,6 +127,7 @@ export const FuelTankInventoryDashboard = () => {
         const fuelTypes = [
             { key: '91_GASOLINE', label: '91 Gasoline' },
             { key: '95_GASOLINE', label: '95 Gasoline' },
+            { key: '98_GASOLINE', label: '98 Gasoline' },
             { key: 'DIESEL', label: 'Diesel' }
         ] as const;
 
@@ -416,6 +419,34 @@ export const FuelTankInventoryDashboard = () => {
                         </div>
                         <div className="mt-4 pt-4 border-t border-gray-200">
                             <p className="text-xs text-yellow-600 font-medium">Click to view details →</p>
+                        </div>
+                    </div>
+
+                    {/* 98 Gasoline */}
+                    <div
+                        onClick={() => handleFuelTypeClick('98_GASOLINE')}
+                        className="bg-white rounded-xl shadow-sm border-2 border-gray-200 hover:border-purple-500 transition-all cursor-pointer p-6"
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">98 Gasoline</h3>
+                            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">Total Liters:</span>
+                                <span className="text-2xl font-bold text-gray-900">{summary['98_GASOLINE'].totalLiters.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">Deliveries:</span>
+                                <span className="text-lg font-semibold text-gray-700">{summary['98_GASOLINE'].deliveryCount}</span>
+                            </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                            <p className="text-xs text-purple-600 font-medium">Click to view details →</p>
                         </div>
                     </div>
                 </div>

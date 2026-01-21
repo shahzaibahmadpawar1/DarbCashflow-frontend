@@ -58,6 +58,7 @@ export const InventoryDashboard = () => {
     const { user, canManageStation, canViewAllStations } = useAuth();
     const [searchParams] = useSearchParams();
     const [stationId, setStationId] = useState<string>('');
+    const [stationName, setStationName] = useState<string>('Loading Station...');
     const [currentShift, setCurrentShift] = useState<DailyShift | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -120,10 +121,15 @@ export const InventoryDashboard = () => {
     const loadCurrentShift = async (sid: string) => {
         try {
             setLoading(true);
-            const [shiftRes, tanksRes] = await Promise.all([
+            const [shiftRes, tanksRes, stationRes] = await Promise.all([
                 api.get(`/api/inventory/shifts/stations/${sid}/current`),
                 api.get(`/api/inventory/stations/${sid}/tanks`),
+                api.get(`/api/stations/${sid}`),
             ]);
+
+            if (stationRes.data.station) {
+                setStationName(stationRes.data.station.name);
+            }
 
             if (shiftRes.data.shift) {
                 setCurrentShift(shiftRes.data.shift);
@@ -143,6 +149,7 @@ export const InventoryDashboard = () => {
             setTanks(tanksRes.data.tanks || []);
         } catch (error: any) {
             console.error('Failed to load shift:', error);
+            setStationName('Error Loading Station');
         } finally {
             setLoading(false);
         }
@@ -766,6 +773,7 @@ export const InventoryDashboard = () => {
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -1255,7 +1263,7 @@ export const InventoryDashboard = () => {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <StationPurchaseRequests
                         stationId={stationId}
-                        stationName="Your Station"
+                        stationName={stationName}
                         onPOReceived={() => loadCurrentShift(stationId)}
                     />
                 </div>
@@ -1346,6 +1354,7 @@ export const InventoryDashboard = () => {
                                         <option value="">Select fuel type</option>
                                         <option value="91_GASOLINE">91 Gasoline</option>
                                         <option value="95_GASOLINE">95 Gasoline</option>
+                                        <option value="98_GASOLINE">98 Gasoline</option>
                                         <option value="DIESEL">Diesel</option>
                                     </select>
                                 </div>
@@ -1993,13 +2002,14 @@ export const InventoryDashboard = () => {
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
                                                     <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">91 Gasoline</th>
                                                     <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">95 Gasoline</th>
+                                                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">98 Gasoline</th>
                                                     <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Diesel</th>
                                                     <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Total Liters</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {shiftHistory.slice(0, 10).map((shift) => {
-                                                    const consumption = { '91_GASOLINE': 0, '95_GASOLINE': 0, 'DIESEL': 0 };
+                                                    const consumption = { '91_GASOLINE': 0, '95_GASOLINE': 0, '98_GASOLINE': 0, 'DIESEL': 0 };
                                                     let total = 0;
                                                     shift.dailyShiftReadings?.forEach((r: any) => {
                                                         const type = r.nozzle?.fuelType;
@@ -2020,6 +2030,9 @@ export const InventoryDashboard = () => {
                                                             </td>
                                                             <td className="px-4 py-3 text-sm text-right text-gray-600">
                                                                 {consumption['95_GASOLINE'].toFixed(2)}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-sm text-right text-gray-600">
+                                                                {consumption['98_GASOLINE'].toFixed(2)}
                                                             </td>
                                                             <td className="px-4 py-3 text-sm text-right text-gray-600">
                                                                 {consumption['DIESEL'].toFixed(2)}
@@ -2083,16 +2096,17 @@ export const InventoryDashboard = () => {
                                                         <table>
                                                             <thead>
                                                                 <tr>
-                                                                    <th>Date</th>
-                                                                    <th>91 Gasoline</th>
-                                                                    <th>95 Gasoline</th>
-                                                                    <th>Diesel</th>
-                                                                    <th>Total Liters</th>
-                                                                </tr>
+                                                                     <th>Date</th>
+                                                                     <th>91 Gasoline</th>
+                                                                     <th>95 Gasoline</th>
+                                                                     <th>98 Gasoline</th>
+                                                                     <th>Diesel</th>
+                                                                     <th>Total Liters</th>
+                                                                 </tr>
                                                             </thead>
                                                             <tbody>
                                                                 ${shiftHistory.slice(0, 30).map(shift => {
-                                                const consumption = { '91_GASOLINE': 0, '95_GASOLINE': 0, 'DIESEL': 0 };
+                                                const consumption = { '91_GASOLINE': 0, '95_GASOLINE': 0, 'DIESEL': 0, '98_GASOLINE': 0 };
                                                 let total = 0;
                                                 shift.dailyShiftReadings?.forEach((r: any) => {
                                                     const type = r.nozzle?.fuelType;
@@ -2104,12 +2118,13 @@ export const InventoryDashboard = () => {
                                                 });
                                                 return `
                                                                         <tr>
-                                                                            <td>${new Date(shift.shiftDate || shift.startTime).toLocaleDateString()}</td>
-                                                                            <td>${consumption['91_GASOLINE'].toFixed(2)}</td>
-                                                                            <td>${consumption['95_GASOLINE'].toFixed(2)}</td>
-                                                                            <td>${consumption['DIESEL'].toFixed(2)}</td>
-                                                                            <td>${total.toFixed(2)}</td>
-                                                                        </tr>
+                                                                             <td>${new Date(shift.shiftDate || shift.startTime).toLocaleDateString()}</td>
+                                                                             <td>${consumption['91_GASOLINE'].toFixed(2)}</td>
+                                                                             <td>${consumption['95_GASOLINE'].toFixed(2)}</td>
+                                                                             <td>${consumption['98_GASOLINE'].toFixed(2)}</td>
+                                                                             <td>${consumption['DIESEL'].toFixed(2)}</td>
+                                                                             <td>${total.toFixed(2)}</td>
+                                                                         </tr>
                                                                     `;
                                             }).join('')}
                                                             </tbody>
@@ -2127,9 +2142,9 @@ export const InventoryDashboard = () => {
                                 </button>
                                 <button
                                     onClick={() => {
-                                        const headers = ['Date', '91 Gasoline', '95 Gasoline', 'Diesel', 'Total Liters'];
+                                        const headers = ['Date', '91 Gasoline', '95 Gasoline', '98 Gasoline', 'Diesel', 'Total Liters'];
                                         const rows = shiftHistory.map(shift => {
-                                            const consumption: any = { '91_GASOLINE': 0, '95_GASOLINE': 0, 'DIESEL': 0 };
+                                            const consumption: any = { '91_GASOLINE': 0, '95_GASOLINE': 0, '98_GASOLINE': 0, 'DIESEL': 0 };
                                             let total = 0;
                                             shift.dailyShiftReadings?.forEach((r: any) => {
                                                 const type = r.nozzle?.fuelType;
@@ -2143,6 +2158,7 @@ export const InventoryDashboard = () => {
                                                 new Date(shift.shiftDate || shift.startTime).toLocaleDateString(),
                                                 consumption['91_GASOLINE'].toFixed(2),
                                                 consumption['95_GASOLINE'].toFixed(2),
+                                                consumption['98_GASOLINE'].toFixed(2),
                                                 consumption['DIESEL'].toFixed(2),
                                                 total.toFixed(2)
                                             ].join(',');
@@ -2175,7 +2191,7 @@ export const InventoryDashboard = () => {
             {showCreditHistory && (
                 <CreditHistoryModal
                     stationId={stationId}
-                    stationName="Your Station"
+                    stationName={stationName}
                     onClose={() => setShowCreditHistory(false)}
                 />
             )}

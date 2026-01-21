@@ -63,6 +63,225 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
         }
     };
 
+    const handlePrint = () => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        // Calculate running balance for print
+        let runningBalance = creditSummary?.totalCreditLimit || 0;
+        const transactionsForPrint = transactions.map(t => {
+            const balanceBefore = runningBalance;
+            if (t.type === 'UTILIZATION') {
+                runningBalance -= t.amount;
+            } else if (t.type === 'ALLOCATION' || t.type === 'ADJUSTMENT' || t.type === 'PAYMENT') {
+                runningBalance += t.amount;
+            }
+            return { ...t, balanceBefore, balanceAfter: runningBalance };
+        }).reverse();
+
+        // Generate transaction rows HTML
+        const transactionRowsHTML = transactionsForPrint.map(t => `
+            <tr>
+                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${new Date(t.createdAt).toLocaleString()}</td>
+                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">
+                    <span style="padding: 2px 6px; border-radius: 10px; font-size: 8pt; ${t.type === 'ALLOCATION' ? 'background: #dcfce7; color: #166534;' :
+                t.type === 'UTILIZATION' ? 'background: #fee2e2; color: #991b1b;' :
+                    t.type === 'PAYMENT' ? 'background: #dbeafe; color: #1e40af;' :
+                        'background: #fef3c7; color: #92400e;'
+            }">
+                        ${getTypeLabel(t.type)}
+                    </span>
+                </td>
+                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${t.description}</td>
+                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt; text-align: right; font-weight: 600; color: ${t.type === 'UTILIZATION' ? '#dc2626' : '#16a34a'};">
+                    ${t.type === 'UTILIZATION' ? '-' : '+'}${t.amount.toLocaleString()} SAR
+                </td>
+                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt; text-align: right;">${t.balanceAfter.toLocaleString()} SAR</td>
+                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${t.creator.name}</td>
+                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${t.verifier ? t.verifier.name : 'N/A'}</td>
+            </tr>
+        `).join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Credit History - ${stationName}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            padding: 20px;
+                            margin: 0;
+                        }
+                        h1 {
+                            color: #111827;
+                            border-bottom: 3px solid #f97316;
+                            padding-bottom: 10px;
+                            margin: 0 0 5px 0;
+                            font-size: 20pt;
+                        }
+                        .subtitle {
+                            color: #6b7280;
+                            font-size: 11pt;
+                            margin: 0 0 20px 0;
+                        }
+                        .summary-grid {
+                            display: grid;
+                            grid-template-columns: repeat(3, 1fr);
+                            gap: 10px;
+                            margin-bottom: 20px;
+                        }
+                        .summary-card {
+                            border: 1px solid #e5e7eb;
+                            padding: 10px;
+                            border-radius: 4px;
+                        }
+                        .summary-card.blue { border-left: 4px solid #3b82f6; }
+                        .summary-card.red { border-left: 4px solid #ef4444; }
+                        .summary-card.green { border-left: 4px solid #22c55e; }
+                        .summary-label {
+                            font-size: 9pt;
+                            color: #6b7280;
+                            margin: 0 0 5px 0;
+                        }
+                        .summary-value {
+                            font-size: 16pt;
+                            font-weight: bold;
+                            margin: 0;
+                        }
+                        .summary-value.blue { color: #111827; }
+                        .summary-value.red { color: #dc2626; }
+                        .summary-value.green { color: #16a34a; }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 20px;
+                        }
+                        th {
+                            background: #f9fafb;
+                            border: 1px solid #d1d5db;
+                            padding: 8px 4px;
+                            text-align: left;
+                            font-size: 9pt;
+                            font-weight: 600;
+                        }
+                        td {
+                            border: 1px solid #e5e7eb;
+                            padding: 6px 4px;
+                            font-size: 9pt;
+                        }
+                        .text-right {
+                            text-align: right;
+                        }
+                        @media print {
+                            button { display: none; }
+                            @page {
+                                size: A4 landscape;
+                                margin: 15mm;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Credit History Report</h1>
+                    <p class="subtitle">${stationName} • Generated on ${new Date().toLocaleString()}</p>
+
+                    <div class="summary-grid">
+                        <div class="summary-card blue">
+                            <p class="summary-label">Total Credit Limit</p>
+                            <p class="summary-value blue">${creditSummary?.totalCreditLimit.toLocaleString() || 0} SAR</p>
+                        </div>
+                        <div class="summary-card red">
+                            <p class="summary-label">Utilized Credits</p>
+                            <p class="summary-value red">${creditSummary?.utilizedCredits.toLocaleString() || 0} SAR</p>
+                        </div>
+                        <div class="summary-card green">
+                            <p class="summary-label">Available Credits</p>
+                            <p class="summary-value green">${creditSummary?.availableCredits.toLocaleString() || 0} SAR</p>
+                        </div>
+                    </div>
+
+                    <h2 style="font-size: 14pt; color: #374151; margin: 20px 0 10px 0;">Transaction History</h2>
+                    <p style="font-size: 9pt; color: #6b7280; margin: 0 0 10px 0;">Total Transactions: ${transactions.length}</p>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th class="text-right">Amount</th>
+                                <th class="text-right">Balance</th>
+                                <th>Created By</th>
+                                <th>Verified By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${transactionRowsHTML}
+                        </tbody>
+                    </table>
+
+                    <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11pt;">Print Report</button>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+    const handleExportToExcel = () => {
+        if (transactions.length === 0) {
+            alert('No transactions to export');
+            return;
+        }
+
+        // Calculate running balance for export
+        let runningBalance = creditSummary?.totalCreditLimit || 0;
+        const transactionsWithBalance = transactions.map(t => {
+            const balanceBefore = runningBalance;
+            if (t.type === 'UTILIZATION') {
+                runningBalance -= t.amount;
+            } else if (t.type === 'ALLOCATION' || t.type === 'ADJUSTMENT' || t.type === 'PAYMENT') {
+                runningBalance += t.amount;
+            }
+            return { ...t, balanceBefore, balanceAfter: runningBalance };
+        }).reverse();
+
+        // Create CSV content
+        const headers = ['Date', 'Type', 'Description', 'Amount (SAR)', 'Balance (SAR)', 'Created By', 'Verified By'];
+        const csvRows = [headers.join(',')];
+
+        transactionsWithBalance.forEach(t => {
+            const row = [
+                new Date(t.createdAt).toLocaleString(),
+                getTypeLabel(t.type),
+                `"${t.description.replace(/"/g, '""')}"`, // Escape quotes in description
+                t.type === 'UTILIZATION' ? `-${t.amount}` : `+${t.amount}`,
+                t.balanceAfter,
+                t.creator.name,
+                t.verifier?.name || 'N/A'
+            ];
+            csvRows.push(row.join(','));
+        });
+
+        // Add summary at the end
+        csvRows.push('');
+        csvRows.push('Summary');
+        csvRows.push(`Total Credit Limit,${creditSummary?.totalCreditLimit || 0}`);
+        csvRows.push(`Utilized Credits,${creditSummary?.utilizedCredits || 0}`);
+        csvRows.push(`Available Credits,${creditSummary?.availableCredits || 0}`);
+
+        // Create and download file
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `credit_history_${stationName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const getTypeLabel = (type: string) => {
         switch (type) {
             case 'ALLOCATION': return 'Credit Allocated';
@@ -118,6 +337,7 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -145,14 +365,40 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
                             <h2 className="text-2xl font-bold text-white">Credit History</h2>
                             <p className="text-white/90 mt-1">{stationName}</p>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
-                        >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {/* Export to Excel Button */}
+                            <button
+                                onClick={handleExportToExcel}
+                                disabled={loading || transactions.length === 0}
+                                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Export to Excel"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Export
+                            </button>
+                            {/* Print Button */}
+                            <button
+                                onClick={handlePrint}
+                                disabled={loading || transactions.length === 0}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Print Report"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                Print
+                            </button>
+                            <button
+                                onClick={onClose}
+                                className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -175,6 +421,31 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
                         </div>
                     </div>
                 )}
+
+                {/* Print-only Header */}
+                <div className="hidden print:block p-6 border-b border-gray-200">
+                    <div className="text-center mb-4">
+                        <h1 className="text-3xl font-bold text-gray-900">Credit History Report</h1>
+                        <p className="text-xl text-gray-700 mt-2">{stationName}</p>
+                        <p className="text-sm text-gray-600 mt-1">Generated on: {new Date().toLocaleString()}</p>
+                    </div>
+                    {creditSummary && (
+                        <div className="grid grid-cols-3 gap-4 mt-4 border-t border-gray-200 pt-4">
+                            <div className="text-center">
+                                <p className="text-sm text-gray-600">Total Credit Limit</p>
+                                <p className="text-xl font-bold text-gray-900">{creditSummary.totalCreditLimit.toLocaleString()} SAR</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm text-gray-600">Utilized Credits</p>
+                                <p className="text-xl font-bold text-red-600">{creditSummary.utilizedCredits.toLocaleString()} SAR</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm text-gray-600">Available Credits</p>
+                                <p className="text-xl font-bold text-green-600">{creditSummary.availableCredits.toLocaleString()} SAR</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* Transactions List */}
                 <div className="flex-1 overflow-y-auto p-6">

@@ -10,6 +10,9 @@ import { Employees } from './pages/Employees';
 import { Stations } from './pages/StationsNew';
 import { OrganizationStructure } from './pages/OrganizationStructure';
 import { OfficePurchaseRequests } from './pages/OfficePurchaseRequests';
+import { AdminFuelBuyingRates } from './pages/AdminFuelBuyingRates';
+import { AdminTransporters } from './pages/AdminTransporters';
+import { ProcurementDashboard } from './pages/ProcurementDashboard';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
@@ -104,6 +107,36 @@ function App() {
             <ProtectedRoute allowedRoles={['OU', 'Admin', 'Accountant']}>
               <Layout>
                 <OfficePurchaseRequests />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/procurement"
+          element={
+            <ProtectedRoute allowedRoles={['Procurement', 'Admin']}>
+              <Layout>
+                <ProcurementDashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/fuel-buying-rates"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <Layout>
+                <AdminFuelBuyingRates />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/transporters"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <Layout>
+                <AdminTransporters />
               </Layout>
             </ProtectedRoute>
           }

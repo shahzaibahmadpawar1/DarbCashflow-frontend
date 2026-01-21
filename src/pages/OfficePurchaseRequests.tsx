@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { PurchaseRequestReviewModal } from '../components/purchase/PurchaseRequestReviewModal';
+import { PaymentVerificationModal } from '../components/purchase/PaymentVerificationModal';
 import { DailyPOReportModal } from '../components/purchase/DailyPOReportModal';
 import { useAuth } from '../hooks/useAuth';
 
@@ -9,6 +10,8 @@ interface PurchaseRequest {
     fuelType: string;
     quantityLiters: number;
     paymentAmount: number;
+    bankDepositAmount?: number;
+    bankDepositReceiptUrl?: string;
     requestedDeliveryDate: string;
     receiptUrl?: string;
     usingCredits?: boolean;
@@ -38,9 +41,9 @@ export const OfficePurchaseRequests = () => {
     const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPR, setSelectedPR] = useState<PurchaseRequest | null>(null);
+    const [selectedPaymentPR, setSelectedPaymentPR] = useState<PurchaseRequest | null>(null);
     const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED'>('all');
     const [categoryFilter, setCategoryFilter] = useState<'all' | 'OPERATIONAL' | 'RENTAL' | 'FRANCHISE'>('all');
-    const [verifying, setVerifying] = useState<string | null>(null);
     const [showDailyReport, setShowDailyReport] = useState(false);
     const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
     const [dailyPOs, setDailyPOs] = useState<any[]>([]);
@@ -64,18 +67,7 @@ export const OfficePurchaseRequests = () => {
         }
     };
 
-    const handleVerifyPayment = async (prId: string) => {
-        try {
-            setVerifying(prId);
-            await api.put(`/api/purchase-requests/${prId}/verify-payment`);
-            alert('Payment verified successfully!');
-            loadPurchaseRequests();
-        } catch (error: any) {
-            alert(error.response?.data?.error || 'Failed to verify payment');
-        } finally {
-            setVerifying(null);
-        }
-    };
+
 
     const loadDailyPOs = async (date: string) => {
         try {
@@ -91,6 +83,7 @@ export const OfficePurchaseRequests = () => {
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -268,6 +261,9 @@ export const OfficePurchaseRequests = () => {
                                             <div>
                                                 <p className="text-xs text-gray-500">Amount</p>
                                                 <p className="text-sm font-semibold text-gray-900">{pr.paymentAmount.toLocaleString()} SAR</p>
+                                                {pr.bankDepositAmount && pr.bankDepositAmount > 0 && (
+                                                    <p className="text-xs text-green-600 font-medium">+{pr.bankDepositAmount.toLocaleString()} SAR deposit</p>
+                                                )}
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-500">Requested By</p>
@@ -332,29 +328,16 @@ export const OfficePurchaseRequests = () => {
                                         )}
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        {/* Accountant: Approve Payment Button */}
+                                        {/* Accountant: Review Payment Button */}
                                         {(isAccountant || isAdmin) && pr.status === 'PENDING' && pr.receiptUrl && !pr.usingCredits && !pr.paymentVerified && (
                                             <button
-                                                onClick={() => handleVerifyPayment(pr.id)}
-                                                disabled={verifying === pr.id}
-                                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                onClick={() => setSelectedPaymentPR(pr)}
+                                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm whitespace-nowrap flex items-center justify-center gap-2"
                                             >
-                                                {verifying === pr.id ? (
-                                                    <>
-                                                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                        Verifying...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        Approve Payment
-                                                    </>
-                                                )}
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                Review Payment
                                             </button>
                                         )}
                                         {/* OU/Admin: Review Request Button */}
@@ -385,6 +368,18 @@ export const OfficePurchaseRequests = () => {
                     onSuccess={() => {
                         loadPurchaseRequests();
                         setSelectedPR(null);
+                    }}
+                />
+            )}
+
+            {/* Payment Verification Modal */}
+            {selectedPaymentPR && (
+                <PaymentVerificationModal
+                    purchaseRequest={selectedPaymentPR}
+                    onClose={() => setSelectedPaymentPR(null)}
+                    onSuccess={() => {
+                        loadPurchaseRequests();
+                        setSelectedPaymentPR(null);
                     }}
                 />
             )}

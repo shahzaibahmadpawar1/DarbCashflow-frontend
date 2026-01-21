@@ -6,7 +6,11 @@ interface PurchaseOrder {
     expectedDeliveryDate: string;
     actualDeliveryDate?: string;
     invoiceNumber?: string;
+    aramcoPoNumber?: string;
+    aramcoPoDate?: string;
     receivedAt?: string;
+    receivedQuantityLiters?: number;
+    receivedAmount?: number;
     createdAt: string;
     purchaseRequest: {
         fuelType: string;
@@ -30,6 +34,7 @@ export const DailyPOReportModal = ({ purchaseOrders, selectedDate, onClose }: Da
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -53,7 +58,7 @@ export const DailyPOReportModal = ({ purchaseOrders, selectedDate, onClose }: Da
 
         // Group by station
         const stationGroups = purchaseOrders.reduce((groups, po) => {
-            const stationName = po.purchaseRequest.station.name;
+            const stationName = po.purchaseRequest?.station?.name || 'N/A';
             if (!groups[stationName]) {
                 groups[stationName] = [];
             }
@@ -77,29 +82,27 @@ export const DailyPOReportModal = ({ purchaseOrders, selectedDate, onClose }: Da
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr style="background: #f9fafb;">
-                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 9pt;">PO Number</th>
-                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 9pt;">Fuel Type</th>
-                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: right; font-size: 9pt;">Quantity (L)</th>
-                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: right; font-size: 9pt;">Amount (SAR)</th>
-                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 9pt;">Expected Delivery</th>
-                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 9pt;">Status</th>
-                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 9pt;">Issued At</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 8pt;">PO No</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 8pt;">Fuel Type</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 8pt;">Date of PO</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 8pt;">Aramco PO No</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 8pt;">Aramco Invoice No</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: left; font-size: 8pt;">Delivery Date/Time</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: right; font-size: 8pt;">Qty Received (L)</th>
+                                <th style="border: 1px solid #d1d5db; padding: 8px 4px; text-align: right; font-size: 8pt;">Amount (SAR)</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${pos.map(po => `
                                 <tr>
-                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt; color: #2563eb;">${po.poNumber}</td>
-                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${getFuelTypeLabel(po.purchaseRequest.fuelType)}</td>
-                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt; text-align: right;">${po.purchaseRequest.quantityLiters.toLocaleString()}</td>
-                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt; text-align: right; font-weight: 600;">${po.purchaseRequest.paymentAmount.toLocaleString()}</td>
-                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${new Date(po.expectedDeliveryDate).toLocaleString()}</td>
-                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">
-                                        <span style="padding: 2px 6px; border-radius: 10px; font-size: 8pt; ${po.receivedAt ? 'background: #dcfce7; color: #166534;' : 'background: #ffedd5; color: #9a3412;'}">
-                                            ${po.receivedAt ? 'Received' : 'Pending'}
-                                        </span>
-                                    </td>
-                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${new Date(po.createdAt).toLocaleString()}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt; color: #2563eb;">${po.poNumber}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt;">${getFuelTypeLabel(po.purchaseRequest.fuelType)}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt;">${new Date(po.createdAt).toLocaleString()}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt;">${po.aramcoPoNumber || '-'}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt;">${po.invoiceNumber || '-'}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt;">${po.actualDeliveryDate ? new Date(po.actualDeliveryDate).toLocaleString() : '-'}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt; text-align: right;">${po.receivedQuantityLiters?.toLocaleString() || '-'}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt; text-align: right; font-weight: 600;">${po.receivedAmount?.toLocaleString() || po.purchaseRequest.paymentAmount.toLocaleString()}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -205,22 +208,21 @@ export const DailyPOReportModal = ({ purchaseOrders, selectedDate, onClose }: Da
         csv += `Report Date: ${new Date(selectedDate).toLocaleDateString()}\n`;
         csv += `Total POs: ${purchaseOrders.length}\n\n`;
 
-        csv += 'PO Number,Station,Station Type,Fuel Type,Quantity (L),Amount (SAR),Expected Delivery,Status,Issued At\n';
+        csv += 'Station Name,PO Number,Fuel Type,Date of PO,Aramco PO No,Aramco Invoice No,Delivery Date/Time,Quantity Received (L),Amount (SAR)\n';
 
         purchaseOrders.forEach(po => {
-            const status = po.receivedAt ? 'Received' : 'Pending';
-            const issuedAt = new Date(po.createdAt).toLocaleString();
-            const expectedDelivery = new Date(po.expectedDeliveryDate).toLocaleString();
+            const poDate = new Date(po.createdAt).toLocaleString();
+            const deliveryDate = po.actualDeliveryDate ? new Date(po.actualDeliveryDate).toLocaleString() : '-';
 
+            csv += `${po.purchaseRequest?.station?.name || 'N/A'},`;
             csv += `${po.poNumber},`;
-            csv += `${po.purchaseRequest.station.name},`;
-            csv += `${po.purchaseRequest.station.stationType || 'N/A'},`;
             csv += `${getFuelTypeLabel(po.purchaseRequest.fuelType)},`;
-            csv += `${po.purchaseRequest.quantityLiters},`;
-            csv += `${po.purchaseRequest.paymentAmount},`;
-            csv += `${expectedDelivery},`;
-            csv += `${status},`;
-            csv += `${issuedAt}\n`;
+            csv += `${poDate},`;
+            csv += `${po.aramcoPoNumber || '-'},`;
+            csv += `${po.invoiceNumber || '-'},`;
+            csv += `${deliveryDate},`;
+            csv += `${po.receivedQuantityLiters || '-'},`;
+            csv += `${po.receivedAmount || po.purchaseRequest.paymentAmount}\n`;
         });
 
         const blob = new Blob([csv], { type: 'text/csv' });
@@ -239,7 +241,7 @@ export const DailyPOReportModal = ({ purchaseOrders, selectedDate, onClose }: Da
 
     // Group by station
     const stationGroups = purchaseOrders.reduce((groups, po) => {
-        const stationName = po.purchaseRequest.station.name;
+        const stationName = po.purchaseRequest?.station?.name || 'N/A';
         if (!groups[stationName]) {
             groups[stationName] = [];
         }
@@ -330,35 +332,27 @@ export const DailyPOReportModal = ({ purchaseOrders, selectedDate, onClose }: Da
                                             <table className="w-full">
                                                 <thead className="bg-gray-50">
                                                     <tr>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">PO Number</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Fuel Type</th>
-                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700">Quantity (L)</th>
-                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700">Amount (SAR)</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Expected Delivery</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Status</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Issued At</th>
+                                                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">PO No</th>
+                                                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Fuel Type</th>
+                                                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Date of PO</th>
+                                                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Aramco PO No</th>
+                                                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Aramco Invoice No</th>
+                                                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Delivery Date/Time</th>
+                                                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700">Qty Received (L)</th>
+                                                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700">Amount (SAR)</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {pos.map((po) => (
                                                         <tr key={po.id} className="border-t border-gray-100 hover:bg-gray-50">
-                                                            <td className="px-4 py-3 text-sm font-medium text-blue-600">{po.poNumber}</td>
-                                                            <td className="px-4 py-3 text-sm text-gray-900">{getFuelTypeLabel(po.purchaseRequest.fuelType)}</td>
-                                                            <td className="px-4 py-3 text-sm text-right text-gray-900">{po.purchaseRequest.quantityLiters.toLocaleString()}</td>
-                                                            <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{po.purchaseRequest.paymentAmount.toLocaleString()}</td>
-                                                            <td className="px-4 py-3 text-sm text-gray-600">{new Date(po.expectedDeliveryDate).toLocaleString()}</td>
-                                                            <td className="px-4 py-3 text-sm">
-                                                                {po.receivedAt ? (
-                                                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                        Received
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                                                        Pending
-                                                                    </span>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-gray-600">{new Date(po.createdAt).toLocaleString()}</td>
+                                                            <td className="px-3 py-2 text-xs font-medium text-blue-600">{po.poNumber}</td>
+                                                            <td className="px-3 py-2 text-xs text-gray-900">{getFuelTypeLabel(po.purchaseRequest.fuelType)}</td>
+                                                            <td className="px-3 py-2 text-xs text-gray-600">{new Date(po.createdAt).toLocaleString()}</td>
+                                                            <td className="px-3 py-2 text-xs text-gray-600">{po.aramcoPoNumber || '-'}</td>
+                                                            <td className="px-3 py-2 text-xs text-gray-600">{po.invoiceNumber || '-'}</td>
+                                                            <td className="px-3 py-2 text-xs text-gray-600">{po.actualDeliveryDate ? new Date(po.actualDeliveryDate).toLocaleString() : '-'}</td>
+                                                            <td className="px-3 py-2 text-xs text-right text-gray-900">{po.receivedQuantityLiters?.toLocaleString() || '-'}</td>
+                                                            <td className="px-3 py-2 text-xs text-right font-medium text-gray-900">{po.receivedAmount?.toLocaleString() || po.purchaseRequest.paymentAmount.toLocaleString()}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>

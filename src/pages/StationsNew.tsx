@@ -50,6 +50,7 @@ export const Stations = () => {
         { name: '91-2', fuelType: '91_GASOLINE', openingReading: 0 },
         { name: '95-1', fuelType: '95_GASOLINE', openingReading: 0 },
         { name: '95-2', fuelType: '95_GASOLINE', openingReading: 0 },
+        { name: '98-1', fuelType: '98_GASOLINE', openingReading: 0 },
         { name: 'D-1', fuelType: 'DIESEL', openingReading: 0 },
         { name: 'D-2', fuelType: 'DIESEL', openingReading: 0 },
     ]);
@@ -57,6 +58,7 @@ export const Stations = () => {
     const [fuelPrices, setFuelPrices] = useState<FuelPrice[]>([
         { fuelType: '91_GASOLINE', pricePerLiter: '' },
         { fuelType: '95_GASOLINE', pricePerLiter: '' },
+        { fuelType: '98_GASOLINE', pricePerLiter: '' },
         { fuelType: 'DIESEL', pricePerLiter: '' },
     ]);
 
@@ -179,12 +181,14 @@ export const Stations = () => {
             { name: '91-2', fuelType: '91_GASOLINE', openingReading: 0 },
             { name: '95-1', fuelType: '95_GASOLINE', openingReading: 0 },
             { name: '95-2', fuelType: '95_GASOLINE', openingReading: 0 },
+            { name: '98-1', fuelType: '98_GASOLINE', openingReading: 0 },
             { name: 'D-1', fuelType: 'DIESEL', openingReading: 0 },
             { name: 'D-2', fuelType: 'DIESEL', openingReading: 0 },
         ]);
         setFuelPrices([
             { fuelType: '91_GASOLINE', pricePerLiter: '' },
             { fuelType: '95_GASOLINE', pricePerLiter: '' },
+            { fuelType: '98_GASOLINE', pricePerLiter: '' },
             { fuelType: 'DIESEL', pricePerLiter: '' },
         ]);
     };
@@ -474,6 +478,7 @@ export const Stations = () => {
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -627,6 +632,7 @@ export const Stations = () => {
                                             >
                                                 <option value="91_GASOLINE">91 Gasoline</option>
                                                 <option value="95_GASOLINE">95 Gasoline</option>
+                                                <option value="98_GASOLINE">98 Gasoline</option>
                                                 <option value="DIESEL">Diesel</option>
                                             </select>
                                         </div>
@@ -994,6 +1000,7 @@ export const Stations = () => {
                                                         >
                                                             <option value="91_GASOLINE">91 Gasoline</option>
                                                             <option value="95_GASOLINE">95 Gasoline</option>
+                                                            <option value="98_GASOLINE">98 Gasoline</option>
                                                             <option value="DIESEL">Diesel</option>
                                                         </select>
                                                     ) : (
@@ -1129,6 +1136,7 @@ export const Stations = () => {
                                             >
                                                 <option value="91_GASOLINE">91 Gasoline</option>
                                                 <option value="95_GASOLINE">95 Gasoline</option>
+                                                <option value="98_GASOLINE">98 Gasoline</option>
                                                 <option value="DIESEL">Diesel</option>
                                             </select>
                                         </div>
@@ -1176,7 +1184,7 @@ export const Stations = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {['91_GASOLINE', '95_GASOLINE', 'DIESEL'].map((fuelType) => {
+                                            {['91_GASOLINE', '95_GASOLINE', '98_GASOLINE', 'DIESEL'].map((fuelType) => {
                                                 const priceData = modalFuelPrices.find(p => p.fuelType === fuelType);
                                                 const currentPrice = priceData?.pricePerLiter || 0;
 

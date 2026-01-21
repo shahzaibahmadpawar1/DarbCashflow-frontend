@@ -14,6 +14,7 @@ interface StationData {
     fuelBreakdown: {
         gasoline91: FuelBreakdown;
         gasoline95: FuelBreakdown;
+        gasoline98: FuelBreakdown;
         diesel: FuelBreakdown;
     };
 }
@@ -32,9 +33,10 @@ export const PrintableInventoryReport = React.forwardRef<HTMLDivElement, Printab
         const totalRevenue = stations.reduce((sum, s) => sum + s.totalRevenue, 0);
         const totalLiters = stations.reduce((sum, s) => sum + s.totalLiters, 0);
 
-        const total91Liters = stations.reduce((sum, s) => sum + s.fuelBreakdown.gasoline91.liters, 0);
-        const total95Liters = stations.reduce((sum, s) => sum + s.fuelBreakdown.gasoline95.liters, 0);
-        const totalDieselLiters = stations.reduce((sum, s) => sum + s.fuelBreakdown.diesel.liters, 0);
+        const total91Liters = stations.reduce((sum, s) => sum + (s.fuelBreakdown.gasoline91?.liters || 0), 0);
+        const total95Liters = stations.reduce((sum, s) => sum + (s.fuelBreakdown.gasoline95?.liters || 0), 0);
+        const total98Liters = stations.reduce((sum, s) => sum + (s.fuelBreakdown.gasoline98?.liters || 0), 0);
+        const totalDieselLiters = stations.reduce((sum, s) => sum + (s.fuelBreakdown.diesel?.liters || 0), 0);
 
         const getDateRangeText = () => {
             if (dateFilterType === 'single') {
@@ -80,6 +82,7 @@ export const PrintableInventoryReport = React.forwardRef<HTMLDivElement, Printab
                             <div className="text-xs space-y-1 mt-1">
                                 <p>91 Gasoline: <span className="font-semibold">{total91Liters.toFixed(2)} L</span></p>
                                 <p>95 Gasoline: <span className="font-semibold">{total95Liters.toFixed(2)} L</span></p>
+                                <p>98 Gasoline: <span className="font-semibold">{total98Liters.toFixed(2)} L</span></p>
                                 <p>Diesel: <span className="font-semibold">{totalDieselLiters.toFixed(2)} L</span></p>
                             </div>
                         </div>
@@ -95,6 +98,7 @@ export const PrintableInventoryReport = React.forwardRef<HTMLDivElement, Printab
                             <th className="border border-gray-400 px-3 py-2 text-left font-semibold">Type</th>
                             <th className="border border-gray-400 px-3 py-2 text-right font-semibold">91 Gasoline (L)</th>
                             <th className="border border-gray-400 px-3 py-2 text-right font-semibold">95 Gasoline (L)</th>
+                            <th className="border border-gray-400 px-3 py-2 text-right font-semibold">98 Gasoline (L)</th>
                             <th className="border border-gray-400 px-3 py-2 text-right font-semibold">Diesel (L)</th>
                             <th className="border border-gray-400 px-3 py-2 text-right font-semibold">Total Liters</th>
                             <th className="border border-gray-400 px-3 py-2 text-right font-semibold">Total Amount (SAR)</th>
@@ -107,13 +111,16 @@ export const PrintableInventoryReport = React.forwardRef<HTMLDivElement, Printab
                                 <td className="border border-gray-400 px-3 py-2 font-medium">{station.name}</td>
                                 <td className="border border-gray-400 px-3 py-2 text-xs">{station.stationType}</td>
                                 <td className="border border-gray-400 px-3 py-2 text-right">
-                                    {station.fuelBreakdown.gasoline91.liters.toFixed(2)}
+                                    {(station.fuelBreakdown.gasoline91?.liters || 0).toFixed(2)}
                                 </td>
                                 <td className="border border-gray-400 px-3 py-2 text-right">
-                                    {station.fuelBreakdown.gasoline95.liters.toFixed(2)}
+                                    {(station.fuelBreakdown.gasoline95?.liters || 0).toFixed(2)}
                                 </td>
                                 <td className="border border-gray-400 px-3 py-2 text-right">
-                                    {station.fuelBreakdown.diesel.liters.toFixed(2)}
+                                    {(station.fuelBreakdown.gasoline98?.liters || 0).toFixed(2)}
+                                </td>
+                                <td className="border border-gray-400 px-3 py-2 text-right">
+                                    {(station.fuelBreakdown.diesel?.liters || 0).toFixed(2)}
                                 </td>
                                 <td className="border border-gray-400 px-3 py-2 text-right font-semibold">
                                     {station.totalLiters.toFixed(2)}
@@ -128,6 +135,7 @@ export const PrintableInventoryReport = React.forwardRef<HTMLDivElement, Printab
                             <td colSpan={3} className="border border-gray-400 px-3 py-2 text-right">TOTAL:</td>
                             <td className="border border-gray-400 px-3 py-2 text-right">{total91Liters.toFixed(2)}</td>
                             <td className="border border-gray-400 px-3 py-2 text-right">{total95Liters.toFixed(2)}</td>
+                            <td className="border border-gray-400 px-3 py-2 text-right">{total98Liters.toFixed(2)}</td>
                             <td className="border border-gray-400 px-3 py-2 text-right">{totalDieselLiters.toFixed(2)}</td>
                             <td className="border border-gray-400 px-3 py-2 text-right">{totalLiters.toFixed(2)}</td>
                             <td className="border border-gray-400 px-3 py-2 text-right">{totalRevenue.toFixed(2)}</td>
@@ -138,7 +146,7 @@ export const PrintableInventoryReport = React.forwardRef<HTMLDivElement, Printab
                 {/* Footer */}
                 <div className="mt-8 pt-4 border-t border-gray-400 text-center text-xs text-gray-600">
                     <p>This is a computer-generated report. No signature is required.</p>
-                    <p className="mt-1">Darb Station - Cash Flow Management System</p>
+                    <p className="mt-1">Darb Station - Fuel Management System</p>
                 </div>
             </div>
         );

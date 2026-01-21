@@ -646,6 +646,7 @@ export const InventoryDashboard = () => {
     switch (fuelType) {
       case '91_GASOLINE': return '91 Gasoline';
       case '95_GASOLINE': return '95 Gasoline';
+      case '98_GASOLINE': return '98 Gasoline';
       case 'DIESEL': return 'Diesel';
       default: return fuelType;
     }
@@ -1303,6 +1304,7 @@ export const InventoryDashboard = () => {
                   >
                     <option value="91_GASOLINE">91 Gasoline</option>
                     <option value="95_GASOLINE">95 Gasoline</option>
+                    <option value="98_GASOLINE">98 Gasoline</option>
                     <option value="DIESEL">Diesel</option>
                   </select>
                 </div>
@@ -1367,7 +1369,7 @@ export const InventoryDashboard = () => {
                       required
                     >
                       <option value="">Choose Fuel Type...</option>
-                      {['91_GASOLINE', '95_GASOLINE', 'DIESEL'].map((ft) => {
+                      {['91_GASOLINE', '95_GASOLINE', '98_GASOLINE', 'DIESEL'].map((ft) => {
                         const tank = tanks.find(t => t.fuelType === ft);
                         return (
                           <option key={ft} value={ft}>

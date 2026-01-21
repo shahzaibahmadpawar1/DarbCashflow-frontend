@@ -76,6 +76,7 @@ export const NozzleOrderAdjuster = ({ stationId, nozzles, onOrderUpdated, onClos
         switch (fuelType) {
             case '91_GASOLINE': return '91 Gasoline';
             case '95_GASOLINE': return '95 Gasoline';
+            case '98_GASOLINE': return '98 Gasoline';
             case 'DIESEL': return 'Diesel';
             default: return fuelType;
         }
@@ -118,8 +119,8 @@ export const NozzleOrderAdjuster = ({ stationId, nozzles, onOrderUpdated, onClos
                                 onDragOver={(e) => handleDragOver(e, index)}
                                 onDragEnd={handleDragEnd}
                                 className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-move transition-all ${draggingIndex === index
-                                        ? 'border-primary bg-primary/10 shadow-lg scale-105'
-                                        : 'border-gray-200 bg-white hover:border-primary/50 hover:shadow-md'
+                                    ? 'border-primary bg-primary/10 shadow-lg scale-105'
+                                    : 'border-gray-200 bg-white hover:border-primary/50 hover:shadow-md'
                                     }`}
                             >
                                 {/* Drag Handle */}
