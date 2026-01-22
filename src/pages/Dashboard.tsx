@@ -33,13 +33,14 @@ interface CashSummary {
 }
 
 export const Dashboard = () => {
-  const { user, isSM, isAM, isAdmin } = useAuth();
+  const { user, isSM, isAM, isAdmin, isOfficeUser, isViewOnly } = useAuth();
   const navigate = useNavigate();
 
   const [stationManagers, setStationManagers] = useState<StationManager[]>([]);
   const [areaManager, setAreaManager] = useState<AreaManager | null>(null);
   const [station, setStation] = useState<Station | null>(null);
   const [loading, setLoading] = useState(true);
+  const [assignedStations, setAssignedStations] = useState<Station[]>([]);
   const [cashSummary, setCashSummary] = useState<CashSummary | null>(null);
   const [cashLoading, setCashLoading] = useState(false);
 
@@ -76,6 +77,10 @@ export const Dashboard = () => {
           const st = stationsRes.data.stations.find((s: any) => s.id === user.stationId);
           setStation(st);
         }
+      } else if (isOfficeUser || isViewOnly) {
+        // Load assigned stations for Office User or ViewOnly user
+        const res = await api.get(`/api/office-users/${user?.id}/stations`);
+        setAssignedStations(res.data.stations);
       }
     } catch (error) {
       console.error('Failed to load dashboard data', error);
@@ -246,10 +251,41 @@ export const Dashboard = () => {
         </div>
       )}
 
+      {/* OU / ViewOnly: Assigned Stations */}
+      {(isOfficeUser || isViewOnly) && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Your Assigned Stations</h2>
+          {assignedStations.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {assignedStations.map((s) => (
+                <div key={s.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 card-hover flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold text-gray-900">{s.name}</p>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/inventory?stationId=${s.id}`)}
+                    className="text-primary hover:text-primary/80"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-2">No stations assigned to you yet.</p>
+              <p className="text-xs text-gray-400">Please contact administrator to assign stations.</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Module Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Hide Cash Flow Module from Accountant and ViewOnly users */}
-        {user?.role !== 'Accountant' && user?.role !== 'ViewOnly' && (
+        {/* Hide Cash Flow Module from Accountant users (ViewOnly users CAN view) */}
+        {user?.role !== 'Accountant' && (
           <Link
             to="/cash-flow"
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover group"

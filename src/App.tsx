@@ -44,7 +44,7 @@ function App() {
         <Route
           path="/cash-flow"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['Admin', 'AM', 'SM', 'ViewOnly']}>
               <Layout>
                 <CashFlowDashboard />
               </Layout>
@@ -104,7 +104,7 @@ function App() {
         <Route
           path="/purchase-requests"
           element={
-            <ProtectedRoute allowedRoles={['OU', 'Admin', 'Accountant']}>
+            <ProtectedRoute allowedRoles={['OU', 'Admin', 'Accountant', 'ViewOnly']}>
               <Layout>
                 <OfficePurchaseRequests />
               </Layout>

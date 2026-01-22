@@ -63,6 +63,7 @@ export const useAuth = () => {
   // Role checks (not including admin in SM/AM checks for dashboard display)
   const isSM = user?.role === 'SM';
   const isAM = user?.role === 'AM';
+  const isViewOnly = user?.role === 'ViewOnly';
   // Permission checks (admin has all permissions)
   const canManageStation = user?.role === 'SM' || isAdmin;
   const canManageArea = user?.role === 'AM' || isAdmin;
@@ -80,6 +81,7 @@ export const useAuth = () => {
     isProcurement,
     isSM,
     isAM,
+    isViewOnly,
     canManageStation,
     canManageArea,
     canViewAllStations,

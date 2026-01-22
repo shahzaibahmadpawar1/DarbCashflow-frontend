@@ -44,6 +44,11 @@ export const ProcurementConfirmModal = ({ purchaseOrder, onClose, onSuccess }: P
             return;
         }
 
+        if (!formData.aramcoPoUrl) {
+            alert('Aramco PO document is required');
+            return;
+        }
+
         try {
             setSubmitting(true);
             await api.put(`/api/purchase-orders/${purchaseOrder.id}/confirm-procurement`, {
@@ -147,13 +152,14 @@ export const ProcurementConfirmModal = ({ purchaseOrder, onClose, onSuccess }: P
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Aramco PO Document (Optional)
+                                Aramco PO Document *
                             </label>
                             <input
                                 type="file"
                                 accept="image/*,application/pdf"
                                 onChange={handleFileUpload}
                                 disabled={uploading}
+                                required
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                             />
                             {uploading && <p className="mt-1 text-sm text-blue-600">Uploading...</p>}

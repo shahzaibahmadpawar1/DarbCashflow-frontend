@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { CreatePurchaseRequestModal } from './purchase/CreatePurchaseRequestModal';
 import { PurchaseOrderDetailsModal } from './purchase/PurchaseOrderDetailsModal';
+import { useAuth } from '../hooks/useAuth';
 
 interface PurchaseRequest {
     id: string;
@@ -53,6 +54,7 @@ interface StationPurchaseRequestsProps {
 }
 
 export const StationPurchaseRequests = ({ stationId, stationName, onPOReceived }: StationPurchaseRequestsProps) => {
+    const { isViewOnly } = useAuth();
     const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -112,27 +114,31 @@ export const StationPurchaseRequests = ({ stationId, stationName, onPOReceived }
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h3 className="text-xl font-semibold text-gray-900">Purchase Requests</h3>
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium flex items-center gap-2"
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Create Request
-                </button>
+                {!isViewOnly && (
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Create Request
+                    </button>
+                )}
             </div>
 
             {/* Purchase Requests List */}
             {purchaseRequests.length === 0 ? (
                 <div className="bg-gray-50 rounded-lg border border-gray-200 p-8 text-center">
                     <p className="text-gray-500">No purchase requests yet</p>
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="mt-4 text-primary hover:text-primary/80 font-medium"
-                    >
-                        Create your first request →
-                    </button>
+                    {!isViewOnly && (
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="mt-4 text-primary hover:text-primary/80 font-medium"
+                        >
+                            Create your first request →
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="space-y-3">

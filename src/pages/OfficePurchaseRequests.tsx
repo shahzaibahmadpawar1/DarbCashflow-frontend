@@ -3,6 +3,7 @@ import api from '../services/api';
 import { PurchaseRequestReviewModal } from '../components/purchase/PurchaseRequestReviewModal';
 import { PaymentVerificationModal } from '../components/purchase/PaymentVerificationModal';
 import { DailyPOReportModal } from '../components/purchase/DailyPOReportModal';
+import { PurchaseOrderDetailsModal, PurchaseOrder } from '../components/purchase/PurchaseOrderDetailsModal';
 import { useAuth } from '../hooks/useAuth';
 
 interface PurchaseRequest {
@@ -16,7 +17,6 @@ interface PurchaseRequest {
     receiptUrl?: string;
     usingCredits?: boolean;
     paymentVerified?: boolean;
-    paymentVerifiedBy?: { name: string; employeeId: string };
     paymentVerifiedAt?: string;
     status: string;
     createdAt: string;
@@ -28,12 +28,15 @@ interface PurchaseRequest {
         stationType?: 'OPERATIONAL' | 'RENTAL' | 'FRANCHISE';
     };
     creator: {
+        id: string;
         name: string;
         employeeId: string;
     };
-    purchaseOrder?: {
-        poNumber: string;
-    };
+    paymentVerifiedBy?: { id: string; name: string; employeeId: string };
+    purchaseOrder?: PurchaseOrder;
+    totalAmount?: number;
+    buyingPricePerLiter?: number;
+    transportationCost?: number;
 }
 
 export const OfficePurchaseRequests = () => {
@@ -47,9 +50,12 @@ export const OfficePurchaseRequests = () => {
     const [showDailyReport, setShowDailyReport] = useState(false);
     const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
     const [dailyPOs, setDailyPOs] = useState<any[]>([]);
+    const [viewingPO, setViewingPO] = useState<PurchaseOrder | null>(null);
 
     const isAccountant = user?.role === 'Accountant';
     const isAdmin = user?.role === 'Admin';
+    const isOU = user?.role === 'OU';
+    const isViewOnly = user?.role === 'ViewOnly';
 
     useEffect(() => {
         loadPurchaseRequests();
@@ -322,8 +328,23 @@ export const OfficePurchaseRequests = () => {
                                             </div>
                                         )}
                                         {pr.purchaseOrder && (
-                                            <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                                            <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200 flex items-center justify-between">
                                                 <p className="text-xs text-green-600 font-medium">PO Generated: {pr.purchaseOrder.poNumber}</p>
+                                                <button
+                                                    onClick={() => {
+                                                        const poForModal = {
+                                                            ...pr.purchaseOrder,
+                                                            purchaseRequest: {
+                                                                ...pr,
+                                                                station: pr.station
+                                                            }
+                                                        };
+                                                        setViewingPO(poForModal as any);
+                                                    }}
+                                                    className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors font-medium"
+                                                >
+                                                    View PO
+                                                </button>
                                             </div>
                                         )}
                                     </div>
@@ -341,7 +362,7 @@ export const OfficePurchaseRequests = () => {
                                             </button>
                                         )}
                                         {/* OU/Admin: Review Request Button */}
-                                        {!isAccountant && pr.status === 'PENDING' && (
+                                        {!isAccountant && !isViewOnly && (isAdmin || isOU) && pr.status === 'PENDING' && (
                                             <button
                                                 onClick={() => setSelectedPR(pr)}
                                                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm whitespace-nowrap"
@@ -390,6 +411,17 @@ export const OfficePurchaseRequests = () => {
                     purchaseOrders={dailyPOs}
                     selectedDate={reportDate}
                     onClose={() => setShowDailyReport(false)}
+                />
+            )}
+            {/* PO Details Modal */}
+            {viewingPO && (
+                <PurchaseOrderDetailsModal
+                    purchaseOrder={viewingPO}
+                    onClose={() => setViewingPO(null)}
+                    onSuccess={() => {
+                        setViewingPO(null);
+                        loadPurchaseRequests();
+                    }}
                 />
             )}
         </div>

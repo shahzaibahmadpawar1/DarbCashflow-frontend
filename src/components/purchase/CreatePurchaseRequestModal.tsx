@@ -52,7 +52,16 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
             setLoadingCredit(true);
             const res = await api.get(`/api/credit-transactions/${stationId}/summary`);
             setCreditSummary(res.data);
-            setTransportationCost(res.data.station.transportationCost || 0);
+
+            // Fetch Bin Salman's transportation cost
+            try {
+                const transporterRes = await api.get('/api/transporters');
+                const binSalman = transporterRes.data.transporters?.find((t: any) => t.name === 'Bin Salman');
+                setTransportationCost(binSalman?.defaultCost || 0);
+            } catch (error) {
+                console.error('Failed to fetch transporter cost:', error);
+                setTransportationCost(0);
+            }
         } catch (error) {
             console.error('Failed to fetch credit summary:', error);
         } finally {
@@ -274,7 +283,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Buying Rate:</span>
-                                        <span className="font-medium text-gray-900">{buyingRate.toFixed(2)} SAR/L</span>
+                                        <span className="font-medium text-gray-900">{buyingRate.toFixed(10)} SAR/L</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Quantity:</span>
@@ -287,7 +296,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">Transportation:</span>
+                                        <span className="text-gray-600">Transportation (Bin Salman):</span>
                                         <span className="font-medium text-gray-900">{transportationCost.toLocaleString()} SAR</span>
                                     </div>
                                     <div className="flex justify-between pt-2 border-t border-gray-300">
@@ -295,7 +304,10 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                                         <span className="font-bold text-primary text-lg">{totalAmount.toLocaleString()} SAR</span>
                                     </div>
                                     <p className="text-xs text-gray-500 mt-2">
-                                        = ({formData.quantityLiters.toLocaleString()} × {buyingRate.toFixed(2)}) + {transportationCost}
+                                        = ({formData.quantityLiters.toLocaleString()} × {buyingRate.toFixed(10)}) + {transportationCost}
+                                    </p>
+                                    <p className="text-xs text-blue-600 mt-1">
+                                        💡 Transporter can be changed at receiving if needed
                                     </p>
                                 </div>
                             )}

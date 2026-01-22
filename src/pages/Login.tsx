@@ -51,7 +51,7 @@ export const Login = () => {
             <h2 className="text-3xl font-bold text-gray-900 mb-1">
               Darb Station
             </h2>
-            <p className="text-sm text-gray-600 font-medium">Cash Flow System</p>
+            <p className="text-sm text-gray-600 font-medium">Fuel Management System</p>
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>

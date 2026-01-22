@@ -47,9 +47,9 @@ export const Layout = ({ children }: LayoutProps) => {
 
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['Admin', 'AM', 'SM', 'OU', 'Accountant', 'ViewOnly', 'Procurement'] },
-    { path: '/cash-flow', label: 'Cash Flow', icon: '💰', roles: ['Admin', 'AM', 'SM'] },
+    { path: '/cash-flow', label: 'Cash Flow', icon: '💰', roles: ['Admin', 'AM', 'SM', 'ViewOnly'] },
     { path: '/inventory', label: 'Inventory', icon: '📦', roles: ['Admin', 'AM', 'SM', 'OU', 'ViewOnly'] },
-    { path: '/purchase-requests', label: 'Purchase Requests', icon: '📝', roles: ['Admin', 'OU', 'Accountant'] },
+    { path: '/purchase-requests', label: 'Purchase Requests', icon: '📝', roles: ['Admin', 'OU', 'Accountant', 'ViewOnly'] },
     { path: '/procurement', label: 'Procurement', icon: '📋', roles: ['Admin', 'Procurement'] },
     { path: '/floating-cash', label: 'Floating Cash', icon: '💵', roles: ['Admin'] },
     { path: '/admin/fuel-buying-rates', label: 'Fuel Buying Rates', icon: '⛽', roles: ['Admin'] },

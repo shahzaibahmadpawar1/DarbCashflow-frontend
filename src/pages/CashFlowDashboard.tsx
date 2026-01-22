@@ -32,7 +32,7 @@ interface CashTransaction {
 }
 
 export const CashFlowDashboard = () => {
-  const { isAM } = useAuth();
+  const { isAM, isViewOnly } = useAuth();
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'transactions' | 'report'>('transactions');
@@ -62,7 +62,7 @@ export const CashFlowDashboard = () => {
   }, [dateFilterType, singleDate, startDate, endDate]);
 
   useEffect(() => {
-    if (activeTab === 'report' && isAM) {
+    if (activeTab === 'report' && (isAM || isViewOnly)) {
       loadReport();
     }
   }, [activeTab, reportDate]);
@@ -209,7 +209,7 @@ export const CashFlowDashboard = () => {
             <p className="text-gray-600">Track revenue and cash movement</p>
           </div>
 
-          {isAM && (
+          {(isAM || isViewOnly) && (
             <div className="flex bg-gray-100 p-1 rounded-lg">
               <button
                 onClick={() => setActiveTab('transactions')}
@@ -387,7 +387,7 @@ export const CashFlowDashboard = () => {
         </div>
       )}
 
-      {activeTab === 'report' && isAM && (
+      {activeTab === 'report' && (isAM || isViewOnly) && (
         <div className="space-y-6">
           <div className="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <label className="font-medium text-gray-700">Report Date:</label>

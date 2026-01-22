@@ -55,7 +55,7 @@ interface Tank {
 }
 
 export const InventoryDashboard = () => {
-    const { user, canManageStation, canViewAllStations } = useAuth();
+    const { user, canManageStation, canViewAllStations, isViewOnly } = useAuth();
     const [searchParams] = useSearchParams();
     const [stationId, setStationId] = useState<string>('');
     const [stationName, setStationName] = useState<string>('Loading Station...');
@@ -823,7 +823,7 @@ export const InventoryDashboard = () => {
     }
 
     if (!stationId) {
-        if (canViewAllStations) {
+        if (canViewAllStations || isViewOnly) {
             return (
                 <div className="p-6">
                     <AdminInventoryView onSelectStation={(id) => {
@@ -852,7 +852,7 @@ export const InventoryDashboard = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        {canViewAllStations && (
+                        {(canViewAllStations || isViewOnly) && (
                             <button
                                 onClick={() => setStationId('')}
                                 className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1"
@@ -1073,7 +1073,7 @@ export const InventoryDashboard = () => {
                                                             className="hidden"
                                                             accept="image/*"
                                                             onChange={(e) => handleReadingPhotoUpload(reading.id, 'shiftAPhotoUrl', e)}
-                                                            disabled={currentShift.locked}
+                                                            disabled={currentShift.locked || isViewOnly}
                                                         />
                                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -1084,7 +1084,7 @@ export const InventoryDashboard = () => {
                                                         type="number"
                                                         value={reading.shiftAReading || ''}
                                                         onChange={(e) => handleReadingChange(reading.id, 'shiftAReading', e.target.value)}
-                                                        disabled={currentShift.locked}
+                                                        disabled={currentShift.locked || isViewOnly}
                                                         className={`w-24 px-2 py-1 text-sm text-right border rounded focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 ${isShiftAInvalid ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300'}`}
                                                         step="0.01"
                                                     />
@@ -1099,7 +1099,7 @@ export const InventoryDashboard = () => {
                                                             className="hidden"
                                                             accept="image/*"
                                                             onChange={(e) => handleReadingPhotoUpload(reading.id, 'shiftBPhotoUrl', e)}
-                                                            disabled={currentShift.locked}
+                                                            disabled={currentShift.locked || isViewOnly}
                                                         />
                                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -1110,7 +1110,7 @@ export const InventoryDashboard = () => {
                                                         type="number"
                                                         value={reading.shiftBReading || ''}
                                                         onChange={(e) => handleReadingChange(reading.id, 'shiftBReading', e.target.value)}
-                                                        disabled={currentShift.locked}
+                                                        disabled={currentShift.locked || isViewOnly}
                                                         className={`w-24 px-2 py-1 text-sm text-right border rounded focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 ${isShiftBInvalid ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300'}`}
                                                         step="0.01"
                                                     />
@@ -1164,7 +1164,7 @@ export const InventoryDashboard = () => {
                                 type="number"
                                 value={paymentData.cardAmount || ''}
                                 onChange={(e) => handlePaymentChange('cardAmount', e.target.value)}
-                                disabled={currentShift.locked}
+                                disabled={currentShift.locked || isViewOnly}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100"
                                 step="0.01"
                                 min="0"
@@ -1178,7 +1178,7 @@ export const InventoryDashboard = () => {
                                 type="number"
                                 value={paymentData.cashAmount || ''}
                                 onChange={(e) => handlePaymentChange('cashAmount', e.target.value)}
-                                disabled={currentShift.locked}
+                                disabled={currentShift.locked || isViewOnly}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100"
                                 step="0.01"
                                 min="0"
@@ -1192,7 +1192,7 @@ export const InventoryDashboard = () => {
                                 type="number"
                                 value={paymentData.option3Amount || ''}
                                 onChange={(e) => handlePaymentChange('option3Amount', e.target.value)}
-                                disabled={currentShift.locked}
+                                disabled={currentShift.locked || isViewOnly}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100"
                                 step="0.01"
                                 min="0"
@@ -1206,7 +1206,7 @@ export const InventoryDashboard = () => {
                                 type="number"
                                 value={paymentData.option4Amount || ''}
                                 onChange={(e) => handlePaymentChange('option4Amount', e.target.value)}
-                                disabled={currentShift.locked}
+                                disabled={currentShift.locked || isViewOnly}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100"
                                 step="0.01"
                                 min="0"

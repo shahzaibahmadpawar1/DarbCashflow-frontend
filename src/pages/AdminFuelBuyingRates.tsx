@@ -165,10 +165,10 @@ export const AdminFuelBuyingRates = () => {
                                                 <div className="flex items-center gap-2">
                                                     <input
                                                         type="number"
-                                                        step="0.01"
+                                                        step="0.0000000001"
                                                         value={editValue}
                                                         onChange={(e) => setEditValue(e.target.value)}
-                                                        className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                        className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
                                                         autoFocus
                                                     />
                                                     <button
@@ -187,7 +187,7 @@ export const AdminFuelBuyingRates = () => {
                                             ) : (
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm text-gray-900">
-                                                        {stationRate.rates[fuelType as keyof typeof stationRate.rates]?.toFixed(2) || '-'}
+                                                        {stationRate.rates[fuelType as keyof typeof stationRate.rates]?.toFixed(10) || '-'}
                                                     </span>
                                                     <button
                                                         onClick={() => handleEdit(

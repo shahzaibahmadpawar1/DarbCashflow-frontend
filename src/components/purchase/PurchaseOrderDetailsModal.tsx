@@ -3,7 +3,7 @@ import api from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { ProcurementConfirmModal } from './ProcurementConfirmModal';
 
-interface PurchaseOrder {
+export interface PurchaseOrder {
     id: string;
     poNumber: string;
     expectedDeliveryDate: string;
@@ -18,8 +18,12 @@ interface PurchaseOrder {
     receivedQuantityLiters?: number;
     receivedAmount?: number;
     creditVariance?: number;
-    transporter?: { name: string };
+    createdAt: string;
+    transporter?: { id: string; name: string };
     actualTransportationCost?: number;
+    creator?: { id: string; name: string; employeeId?: string };
+    receiver?: { id: string; name: string; employeeId?: string };
+    procurementConfirmedBy?: { id: string; name: string; employeeId?: string };
     purchaseRequest: {
         fuelType: string;
         quantityLiters: number;
@@ -29,7 +33,11 @@ interface PurchaseOrder {
         transportationCost?: number;
         requestedDeliveryDate: string;
         receiptUrl?: string;
+        paymentVerified?: boolean;
+        paymentVerifiedAt?: string;
+        paymentVerifiedBy?: { id: string; name: string; employeeId?: string };
         station: { name: string };
+        creator?: { id: string; name: string; employeeId?: string };
     };
 }
 
@@ -73,11 +81,16 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
         try {
             const res = await api.get('/api/transporters?activeOnly=true');
             setTransporters(res.data.transporters || []);
+
+            // Pre-select transporter from PO if available, otherwise use first transporter
             if (res.data.transporters?.length > 0) {
+                const defaultTransporterId = purchaseOrder.transporter?.id || res.data.transporters[0].id;
+                const defaultTransporter = res.data.transporters.find((t: Transporter) => t.id === defaultTransporterId) || res.data.transporters[0];
+
                 setReceiveData(prev => ({
                     ...prev,
-                    transporterId: res.data.transporters[0].id,
-                    actualTransportationCost: res.data.transporters[0].defaultCost,
+                    transporterId: defaultTransporter.id,
+                    actualTransportationCost: purchaseOrder.actualTransportationCost || defaultTransporter.defaultCost,
                 }));
             }
         } catch (error) {
@@ -138,6 +151,11 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
             return;
         }
 
+        if (!receiveData.invoiceUrl) {
+            alert('Invoice upload is required');
+            return;
+        }
+
         try {
             setSubmitting(true);
             const response = await api.put(`/api/purchase-orders/${purchaseOrder.id}/receive`, receiveData);
@@ -171,6 +189,231 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
         }
     };
 
+    const handlePrint = () => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const statusBadge = isReceived
+            ? '<span style="display: inline-block; padding: 8px 16px; border-radius: 20px; font-size: 10pt; font-weight: 600; background-color: #dcfce7; color: #166534;">✓ Received</span>'
+            : isProcurementConfirmed
+                ? '<span style="display: inline-block; padding: 8px 16px; border-radius: 20px; font-size: 10pt; font-weight: 600; background-color: #dbeafe; color: #1e40af;">✓ Procurement Confirmed</span>'
+                : '<span style="display: inline-block; padding: 8px 16px; border-radius: 20px; font-size: 10pt; font-weight: 600; background-color: #fef3c7; color: #92400e;">⏳ Pending Procurement</span>';
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Purchase Order - ${purchaseOrder.poNumber}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            padding: 20px;
+                            margin: 0;
+                        }
+                        h1 {
+                            color: #111827;
+                            border-bottom: 3px solid #3b82f6;
+                            padding-bottom: 10px;
+                            margin: 0 0 5px 0;
+                            font-size: 20pt;
+                        }
+                        .subtitle {
+                            color: #6b7280;
+                            font-size: 11pt;
+                            margin: 0 0 20px 0;
+                        }
+                        .section {
+                            border: 1px solid #e5e7eb;
+                            padding: 15px;
+                            margin-bottom: 15px;
+                            border-radius: 8px;
+                            page-break-inside: avoid;
+                        }
+                        .section.gray { background-color: #f9fafb; }
+                        .section.blue { background-color: #eff6ff; border-color: #bfdbfe; }
+                        .section.green { background-color: #f0fdf4; border-color: #bbf7d0; }
+                        .section.purple { background-color: #faf5ff; border-color: #e9d5ff; }
+                        .section-title {
+                            font-size: 12pt;
+                            font-weight: 600;
+                            color: #111827;
+                            margin: 0 0 15px 0;
+                        }
+                        .grid {
+                            display: grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 15px;
+                        }
+                        .field {
+                            margin-bottom: 10px;
+                        }
+                        .field-label {
+                            font-size: 9pt;
+                            color: #6b7280;
+                            margin: 0 0 3px 0;
+                        }
+                        .field-value {
+                            font-size: 10pt;
+                            font-weight: 600;
+                            color: #111827;
+                            margin: 0;
+                        }
+                        .field-subtext {
+                            font-size: 8pt;
+                            color: #9ca3af;
+                            margin: 2px 0 0 0;
+                        }
+                        @media print {
+                            button { display: none; }
+                            @page {
+                                size: A4 portrait;
+                                margin: 15mm;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Purchase Order Details</h1>
+                    <p class="subtitle">PO #${purchaseOrder.poNumber}</p>
+                    <div style="margin-bottom: 20px;">${statusBadge}</div>
+
+                    <!-- Order Information -->
+                    <div class="section gray">
+                        <h4 class="section-title">Order Information</h4>
+                        <div class="grid">
+                            <div class="field">
+                                <p class="field-label">Station</p>
+                                <p class="field-value">${purchaseOrder.purchaseRequest?.station?.name || 'N/A'}</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Fuel Type</p>
+                                <p class="field-value">${getFuelTypeLabel(purchaseOrder.purchaseRequest?.fuelType || 'N/A')}</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Ordered Quantity</p>
+                                <p class="field-value">${(purchaseOrder.purchaseRequest?.quantityLiters || 0).toLocaleString()} L</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Ordered Amount</p>
+                                <p class="field-value">${(purchaseOrder.purchaseRequest?.totalAmount || purchaseOrder.purchaseRequest?.paymentAmount || 0).toLocaleString()} SAR</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Expected Delivery</p>
+                                <p class="field-value">${new Date(purchaseOrder.expectedDeliveryDate).toLocaleString()}</p>
+                            </div>
+                            ${purchaseOrder.purchaseRequest?.receiptUrl ? `
+                            <div class="field">
+                                <p class="field-label">PR Receipt</p>
+                                <p class="field-value">Attached</p>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Verification Details -->
+                    <div class="section purple">
+                        <h4 class="section-title">Verification Details</h4>
+                        <div class="grid">
+                            <div class="field">
+                                <p class="field-label">Back Office (PO Creator)</p>
+                                <p class="field-value">${purchaseOrder.creator?.name || '-'}${purchaseOrder.creator?.employeeId ? ` (${purchaseOrder.creator.employeeId})` : ''}</p>
+                                <p class="field-subtext">${new Date(purchaseOrder.createdAt).toLocaleString()}</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Accountant (Payment Verified)</p>
+                                <p class="field-value">${purchaseOrder.purchaseRequest?.paymentVerifiedBy?.name || '-'}${purchaseOrder.purchaseRequest?.paymentVerifiedBy?.employeeId ? ` (${purchaseOrder.purchaseRequest.paymentVerifiedBy.employeeId})` : ''}</p>
+                                ${purchaseOrder.purchaseRequest?.paymentVerifiedAt ? `<p class="field-subtext">${new Date(purchaseOrder.purchaseRequest.paymentVerifiedAt).toLocaleString()}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    ${isProcurementConfirmed ? `
+                    <!-- Procurement Details -->
+                    <div class="section blue">
+                        <h4 class="section-title">Procurement Details</h4>
+                        <div class="grid">
+                            <div class="field">
+                                <p class="field-label">Aramco PO Number</p>
+                                <p class="field-value">${purchaseOrder.aramcoPoNumber || '-'}</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Aramco PO Date & Time</p>
+                                <p class="field-value">${purchaseOrder.aramcoPoDate ? new Date(purchaseOrder.aramcoPoDate).toLocaleString() : '-'}</p>
+                            </div>
+                            ${purchaseOrder.procurementConfirmedBy && purchaseOrder.procurementConfirmedAt ? `
+                            <div class="field">
+                                <p class="field-label">Confirmed By</p>
+                                <p class="field-value">${purchaseOrder.procurementConfirmedBy.name}${purchaseOrder.procurementConfirmedBy.employeeId ? ` (${purchaseOrder.procurementConfirmedBy.employeeId})` : ''}</p>
+                                <p class="field-subtext">${new Date(purchaseOrder.procurementConfirmedAt).toLocaleString()}</p>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${isReceived ? `
+                    <!-- Delivery Details -->
+                    <div class="section green">
+                        <h4 class="section-title">Delivery Details</h4>
+                        <div class="grid">
+                            <div class="field">
+                                <p class="field-label">Actual Delivery Date & Time</p>
+                                <p class="field-value">${purchaseOrder.actualDeliveryDate ? new Date(purchaseOrder.actualDeliveryDate).toLocaleString() : '-'}</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Invoice Number</p>
+                                <p class="field-value">${purchaseOrder.invoiceNumber || '-'}</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Received Quantity</p>
+                                <p class="field-value">${(purchaseOrder.receivedQuantityLiters || 0).toLocaleString()} L</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Received Amount</p>
+                                <p class="field-value">${(purchaseOrder.receivedAmount || 0).toLocaleString()} SAR</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Transporter</p>
+                                <p class="field-value">${purchaseOrder.transporter?.name || '-'}</p>
+                            </div>
+                            <div class="field">
+                                <p class="field-label">Transportation Cost</p>
+                                <p class="field-value">${(purchaseOrder.actualTransportationCost || 0).toLocaleString()} SAR</p>
+                            </div>
+                            ${purchaseOrder.creditVariance !== undefined && purchaseOrder.creditVariance !== 0 ? `
+                            <div class="field" style="grid-column: span 2;">
+                                <p class="field-label">Credit Variance</p>
+                                <p class="field-value" style="color: ${purchaseOrder.creditVariance > 0 ? '#16a34a' : '#dc2626'};">
+                                    ${purchaseOrder.creditVariance > 0 ? '+' : ''}${purchaseOrder.creditVariance.toLocaleString()} SAR
+                                    <span style="font-size: 8pt; font-weight: normal; color: #6b7280;">
+                                        (${purchaseOrder.creditVariance > 0 ? 'Credited to station' : 'Debited from station'})
+                                    </span>
+                                </p>
+                            </div>
+                            ` : ''}
+                            ${purchaseOrder.receiver && purchaseOrder.receivedAt ? `
+                            <div class="field">
+                                <p class="field-label">Received By</p>
+                                <p class="field-value">${purchaseOrder.receiver.name}${purchaseOrder.receiver.employeeId ? ` (${purchaseOrder.receiver.employeeId})` : ''}</p>
+                                <p class="field-subtext">${new Date(purchaseOrder.receivedAt).toLocaleString()}</p>
+                            </div>
+                            ` : ''}
+                            ${purchaseOrder.invoiceUrl ? `
+                            <div class="field">
+                                <p class="field-label">Invoice Document</p>
+                                <p class="field-value">Attached</p>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11pt;">Print</button>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     const isReceived = !!purchaseOrder.receivedAt;
     const isProcurementConfirmed = !!purchaseOrder.procurementConfirmedAt;
     const canReceive = isProcurementConfirmed && !isReceived && (isSM || isAdmin);
@@ -187,14 +430,22 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                                 <h3 className="text-2xl font-bold text-gray-900">Purchase Order Details</h3>
                                 <p className="text-gray-600 mt-1">PO #{purchaseOrder.poNumber}</p>
                             </div>
-                            <button
-                                onClick={onClose}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handlePrint}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium print:hidden"
+                                >
+                                    Print
+                                </button>
+                                <button
+                                    onClick={onClose}
+                                    className="text-gray-400 hover:text-gray-600 print:hidden"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
 
                         {/* Status Badges */}
@@ -240,7 +491,48 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Expected Delivery</p>
-                                    <p className="text-sm font-semibold text-gray-900">{new Date(purchaseOrder.expectedDeliveryDate).toLocaleDateString()}</p>
+                                    <p className="text-sm font-semibold text-gray-900">{new Date(purchaseOrder.expectedDeliveryDate).toLocaleString()}</p>
+                                </div>
+                                {purchaseOrder.purchaseRequest?.receiptUrl && (
+                                    <div className="col-span-2">
+                                        <a
+                                            href={purchaseOrder.purchaseRequest.receiptUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                        >
+                                            View PR Receipt →
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Back Office & Accountant Details */}
+                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 mb-6 print:bg-white print:border-gray-300">
+                            <h4 className="text-md font-semibold text-gray-900 mb-3">Verification Details</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm text-gray-600">Back Office (PO Creator)</p>
+                                    <p className="text-sm font-semibold text-gray-900">
+                                        {purchaseOrder.creator?.name || '-'}
+                                        {purchaseOrder.creator?.employeeId && ` (${purchaseOrder.creator.employeeId})`}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        {new Date(purchaseOrder.createdAt).toLocaleString()}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-600">Accountant (Payment Verified)</p>
+                                    <p className="text-sm font-semibold text-gray-900">
+                                        {purchaseOrder.purchaseRequest?.paymentVerifiedBy?.name || '-'}
+                                        {purchaseOrder.purchaseRequest?.paymentVerifiedBy?.employeeId && ` (${purchaseOrder.purchaseRequest.paymentVerifiedBy.employeeId})`}
+                                    </p>
+                                    {purchaseOrder.purchaseRequest?.paymentVerifiedAt && (
+                                        <p className="text-xs text-gray-500">
+                                            {new Date(purchaseOrder.purchaseRequest.paymentVerifiedAt).toLocaleString()}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -255,9 +547,9 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                                         <p className="text-sm font-semibold text-gray-900">{purchaseOrder.aramcoPoNumber || '-'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-gray-600">Aramco PO Date</p>
+                                        <p className="text-sm text-gray-600">Aramco PO Date & Time</p>
                                         <p className="text-sm font-semibold text-gray-900">
-                                            {purchaseOrder.aramcoPoDate ? new Date(purchaseOrder.aramcoPoDate).toLocaleDateString() : '-'}
+                                            {purchaseOrder.aramcoPoDate ? new Date(purchaseOrder.aramcoPoDate).toLocaleString() : '-'}
                                         </p>
                                     </div>
                                     {purchaseOrder.aramcoPoUrl && (
@@ -282,9 +574,9 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                                 <h4 className="text-md font-semibold text-gray-900 mb-3">Delivery Details</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <p className="text-sm text-gray-600">Actual Delivery Date</p>
+                                        <p className="text-sm text-gray-600">Actual Delivery Date & Time</p>
                                         <p className="text-sm font-semibold text-gray-900">
-                                            {purchaseOrder.actualDeliveryDate ? new Date(purchaseOrder.actualDeliveryDate).toLocaleDateString() : '-'}
+                                            {purchaseOrder.actualDeliveryDate ? new Date(purchaseOrder.actualDeliveryDate).toLocaleString() : '-'}
                                         </p>
                                     </div>
                                     <div>
@@ -316,6 +608,18 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                                                     ({purchaseOrder.creditVariance > 0 ? 'Credited to station' : 'Debited from station'})
                                                 </span>
                                             </p>
+                                        </div>
+                                    )}
+                                    {purchaseOrder.invoiceUrl && (
+                                        <div className="col-span-2">
+                                            <a
+                                                href={purchaseOrder.invoiceUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                            >
+                                                View Invoice Document →
+                                            </a>
                                         </div>
                                     )}
                                 </div>
@@ -441,12 +745,13 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Invoice Upload (Optional)</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Invoice Upload *</label>
                                         <input
                                             type="file"
                                             accept="image/*,application/pdf"
                                             onChange={handleFileUpload}
                                             disabled={uploading}
+                                            required
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
                                         />
                                         {uploading && <p className="mt-1 text-sm text-blue-600">Uploading...</p>}
