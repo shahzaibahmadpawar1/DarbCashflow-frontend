@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { getLocalDateTimeString, convertLocalToUTC } from '../utils/dateTimeUtils';
 
 interface Nozzle {
   id: string;
@@ -92,7 +93,7 @@ export const InventoryDashboard = () => {
   const [tankerFormData, setTankerFormData] = useState({
     fuelType: '',
     litersDelivered: '',
-    deliveryDate: new Date().toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
+    deliveryDate: getLocalDateTimeString(), // Fixed: Use local time
     aramcoTicket: '',
     notes: '',
   });
@@ -616,7 +617,7 @@ export const InventoryDashboard = () => {
       await api.post(`/api/inventory/stations/${stationId}/deliveries`, {
         fuelType: tankerFormData.fuelType, // Send fuel type
         litersDelivered: parseFloat(tankerFormData.litersDelivered),
-        deliveryDate: new Date(tankerFormData.deliveryDate).toISOString(),
+        deliveryDate: convertLocalToUTC(tankerFormData.deliveryDate), // Fixed: Convert to UTC
         aramcoTicket: tankerFormData.aramcoTicket,
         notes: tankerFormData.notes,
       });
@@ -626,7 +627,7 @@ export const InventoryDashboard = () => {
       setTankerFormData({
         fuelType: '',
         litersDelivered: '',
-        deliveryDate: new Date().toISOString().slice(0, 16),
+        deliveryDate: getLocalDateTimeString(), // Fixed: Use local time
         aramcoTicket: '',
         notes: '',
       });

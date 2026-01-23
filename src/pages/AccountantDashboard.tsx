@@ -136,7 +136,7 @@ export const AccountantDashboard = () => {
                                                     <h3 className="font-semibold text-gray-900">{pr.station.name}</h3>
                                                     <p className="text-sm text-gray-600">By: {pr.creator.name}</p>
                                                     <p className="text-xs text-gray-500 mt-1">
-                                                        {new Date(pr.createdAt).toLocaleDateString()}
+                                                        {new Date(pr.createdAt).toLocaleString()}
                                                     </p>
                                                 </div>
                                                 <p className="text-lg font-bold text-green-600">

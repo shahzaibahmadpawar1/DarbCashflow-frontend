@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { ProcurementConfirmModal } from './ProcurementConfirmModal';
+import { getLocalDateTimeString, convertLocalToUTC } from '../../utils/dateTimeUtils';
 
 export interface PurchaseOrder {
     id: string;
@@ -33,6 +34,8 @@ export interface PurchaseOrder {
         transportationCost?: number;
         requestedDeliveryDate: string;
         receiptUrl?: string;
+        bankDepositAmount?: number;
+        bankDepositReceiptUrl?: string;
         paymentVerified?: boolean;
         paymentVerifiedAt?: string;
         paymentVerifiedBy?: { id: string; name: string; employeeId?: string };
@@ -59,7 +62,7 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
     const [showProcurementModal, setShowProcurementModal] = useState(false);
     const [transporters, setTransporters] = useState<Transporter[]>([]);
     const [receiveData, setReceiveData] = useState({
-        actualDeliveryDate: new Date().toISOString().split('T')[0],
+        actualDeliveryDate: getLocalDateTimeString(),
         invoiceNumber: '',
         invoiceUrl: '',
         receivedQuantityLiters: purchaseOrder.purchaseRequest.quantityLiters,
@@ -158,7 +161,10 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
 
         try {
             setSubmitting(true);
-            const response = await api.put(`/api/purchase-orders/${purchaseOrder.id}/receive`, receiveData);
+            const response = await api.put(`/api/purchase-orders/${purchaseOrder.id}/receive`, {
+                ...receiveData,
+                actualDeliveryDate: convertLocalToUTC(receiveData.actualDeliveryDate)
+            });
 
             const varianceInfo = response.data.variance;
             let message = 'Purchase order marked as received!';
@@ -493,18 +499,42 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                                     <p className="text-sm text-gray-600">Expected Delivery</p>
                                     <p className="text-sm font-semibold text-gray-900">{new Date(purchaseOrder.expectedDeliveryDate).toLocaleString()}</p>
                                 </div>
-                                {purchaseOrder.purchaseRequest?.receiptUrl && (
-                                    <div className="col-span-2">
+                                {(purchaseOrder.purchaseRequest?.bankDepositAmount !== undefined && purchaseOrder.purchaseRequest?.bankDepositAmount !== null) && (
+                                    <div>
+                                        <p className="text-sm text-gray-600">Bank Deposit</p>
+                                        <p className="text-sm font-semibold text-gray-900">{purchaseOrder.purchaseRequest.bankDepositAmount.toLocaleString()} SAR</p>
+                                    </div>
+                                )}
+
+                                {/* Receipt Links */}
+                                <div className="col-span-full mt-2 pt-2 border-t border-gray-100 flex flex-wrap gap-4">
+                                    {purchaseOrder.purchaseRequest?.receiptUrl && (
                                         <a
                                             href={purchaseOrder.purchaseRequest.receiptUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 transition-colors"
                                         >
-                                            View PR Receipt →
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                            </svg>
+                                            View Fuel Receipt
                                         </a>
-                                    </div>
-                                )}
+                                    )}
+                                    {purchaseOrder.purchaseRequest?.bankDepositReceiptUrl && (
+                                        <a
+                                            href={purchaseOrder.purchaseRequest.bankDepositReceiptUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                            </svg>
+                                            View Deposit Receipt
+                                        </a>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -653,9 +683,9 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Actual Delivery Date *</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Actual Delivery Date & Time *</label>
                                             <input
-                                                type="date"
+                                                type="datetime-local"
                                                 required
                                                 value={receiveData.actualDeliveryDate}
                                                 onChange={(e) => setReceiveData({ ...receiveData, actualDeliveryDate: e.target.value })}

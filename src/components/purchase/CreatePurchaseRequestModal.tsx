@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { getLocalDateTimeString, convertLocalToUTC } from '../../utils/dateTimeUtils';
 
 interface CreatePurchaseRequestModalProps {
     stationId: string;
@@ -24,7 +25,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
     const [formData, setFormData] = useState({
         fuelType: '91_GASOLINE' as '91_GASOLINE' | '95_GASOLINE' | '98_GASOLINE' | 'DIESEL',
         quantityLiters: 0,
-        requestedDeliveryDate: new Date().toISOString().slice(0, 16),
+        requestedDeliveryDate: getLocalDateTimeString(), // Fixed: Use local time
         receiptUrl: '',
         bankDepositAmount: 0,
         bankDepositReceiptUrl: '',
@@ -149,7 +150,7 @@ export const CreatePurchaseRequestModal = ({ stationId, stationName, onClose, on
                 stationId,
                 fuelType: formData.fuelType,
                 quantityLiters: formData.quantityLiters,
-                requestedDeliveryDate: formData.requestedDeliveryDate,
+                requestedDeliveryDate: convertLocalToUTC(formData.requestedDeliveryDate), // Fixed: Convert to UTC
                 receiptUrl: formData.receiptUrl,
                 bankDepositAmount: formData.bankDepositAmount,
                 bankDepositReceiptUrl: formData.bankDepositReceiptUrl,

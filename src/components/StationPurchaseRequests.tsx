@@ -14,6 +14,8 @@ interface PurchaseRequest {
     createdAt: string;
     rejectionReason?: string;
     receiptUrl?: string;
+    bankDepositAmount?: number;
+    bankDepositReceiptUrl?: string;
     purchaseOrder?: {
         id: string;
         poNumber: string;
@@ -224,6 +226,8 @@ export const StationPurchaseRequests = ({ stationId, stationName, onPOReceived }
                                                     paymentAmount: pr.paymentAmount,
                                                     requestedDeliveryDate: pr.requestedDeliveryDate,
                                                     receiptUrl: pr.receiptUrl,
+                                                    bankDepositAmount: pr.bankDepositAmount,
+                                                    bankDepositReceiptUrl: pr.bankDepositReceiptUrl,
                                                     station: (pr as any).station || { name: stationName }
                                                 }
                                             });

@@ -9,6 +9,8 @@ interface PurchaseRequest {
     paymentAmount: number;
     requestedDeliveryDate: string;
     receiptUrl?: string;
+    bankDepositAmount?: number;
+    bankDepositReceiptUrl?: string;
     status: string;
     rejectionReason?: string;
     createdAt: string;
@@ -103,6 +105,8 @@ export const PRPOHistoryModal = ({ stationId, stationName, onClose }: PRPOHistor
                     paymentAmount: request.paymentAmount,
                     requestedDeliveryDate: request.requestedDeliveryDate,
                     receiptUrl: request.receiptUrl,
+                    bankDepositAmount: request.bankDepositAmount,
+                    bankDepositReceiptUrl: request.bankDepositReceiptUrl,
                     station: { name: stationName }
                 }
             });
@@ -168,12 +172,18 @@ export const PRPOHistoryModal = ({ stationId, stationName, onClose }: PRPOHistor
                                                     </div>
                                                     <div>
                                                         <p className="text-gray-600">Requested Date</p>
-                                                        <p className="font-semibold text-gray-900">{new Date(request.requestedDeliveryDate).toLocaleDateString()}</p>
+                                                        <p className="font-semibold text-gray-900">{new Date(request.requestedDeliveryDate).toLocaleString()}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-gray-600">Created By</p>
                                                         <p className="font-semibold text-gray-900">{request.createdBy.name}</p>
                                                     </div>
+                                                    {request.bankDepositAmount !== undefined && request.bankDepositAmount > 0 && (
+                                                        <div>
+                                                            <p className="text-gray-600">Bank Deposit</p>
+                                                            <p className="font-semibold text-gray-900">{request.bankDepositAmount.toLocaleString()} SAR</p>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {request.receiptUrl && (
@@ -187,7 +197,23 @@ export const PRPOHistoryModal = ({ stationId, stationName, onClose }: PRPOHistor
                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                                             </svg>
-                                                            View Request Attachment
+                                                            View Fuel Receipt
+                                                        </a>
+                                                    </div>
+                                                )}
+
+                                                {request.bankDepositReceiptUrl && (
+                                                    <div className="mt-1 text-sm">
+                                                        <a
+                                                            href={request.bankDepositReceiptUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                                            </svg>
+                                                            View Deposit Receipt
                                                         </a>
                                                     </div>
                                                 )}
@@ -203,12 +229,12 @@ export const PRPOHistoryModal = ({ stationId, stationName, onClose }: PRPOHistor
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-gray-600">Expected Delivery</p>
-                                                                    <p className="font-semibold text-gray-900">{new Date(request.purchaseOrder.expectedDeliveryDate).toLocaleDateString()}</p>
+                                                                    <p className="font-semibold text-gray-900">{new Date(request.purchaseOrder.expectedDeliveryDate).toLocaleString()}</p>
                                                                 </div>
                                                                 {request.purchaseOrder.receivedAt && (
                                                                     <div>
                                                                         <p className="text-gray-600">Received On</p>
-                                                                        <p className="font-semibold text-gray-900">{new Date(request.purchaseOrder.receivedAt).toLocaleDateString()}</p>
+                                                                        <p className="font-semibold text-gray-900">{new Date(request.purchaseOrder.receivedAt).toLocaleString()}</p>
                                                                     </div>
                                                                 )}
                                                             </div>

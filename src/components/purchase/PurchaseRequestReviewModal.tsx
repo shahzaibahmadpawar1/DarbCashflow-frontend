@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import api from '../../services/api';
+import { getLocalDateTimeString, convertLocalToUTC } from '../../utils/dateTimeUtils';
 
 interface PurchaseRequest {
     id: string;
@@ -8,6 +9,8 @@ interface PurchaseRequest {
     paymentAmount: number;
     requestedDeliveryDate: string;
     receiptUrl?: string;
+    bankDepositAmount?: number;
+    bankDepositReceiptUrl?: string;
     status: string;
     createdAt: string;
     usingCredits?: boolean;
@@ -38,11 +41,12 @@ interface PurchaseRequestReviewModalProps {
 export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess, userRole }: PurchaseRequestReviewModalProps) => {
     const [action, setAction] = useState<'approve' | 'reject' | 'verify' | null>(null);
     const [comment, setComment] = useState('');
-    const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(new Date().toISOString().slice(0, 16));
+    const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(getLocalDateTimeString()); // Fixed: Use local time
     const [submitting, setSubmitting] = useState(false);
 
     const availableCredits = (purchaseRequest.station.totalCreditLimit || 0) - (purchaseRequest.station.utilizedCredits || 0);
-    const needsPaymentVerification = !!(purchaseRequest.receiptUrl && !purchaseRequest.usingCredits && !purchaseRequest.paymentVerified);
+    const hasReceipt = !!(purchaseRequest.receiptUrl || purchaseRequest.bankDepositReceiptUrl);
+    const needsPaymentVerification = !!(hasReceipt && !purchaseRequest.paymentVerified);
     const isAccountant = userRole === 'Accountant' || userRole === 'Admin';
 
     const handleVerifyPayment = async () => {
@@ -70,7 +74,7 @@ export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess
             // Then create the PO
             await api.post('/api/purchase-orders', {
                 purchaseRequestId: purchaseRequest.id,
-                expectedDeliveryDate,
+                expectedDeliveryDate: convertLocalToUTC(expectedDeliveryDate), // Fixed: Convert to UTC
             });
 
             alert('Purchase request approved and PO generated!');
@@ -136,7 +140,7 @@ export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess
                     </div>
 
                     {/* Payment Verification Status */}
-                    {purchaseRequest.receiptUrl && (
+                    {hasReceipt && (
                         <div className={`p-4 rounded-lg border mb-4 ${purchaseRequest.paymentVerified
                             ? 'bg-green-50 border-green-200'
                             : 'bg-orange-50 border-orange-200'
@@ -147,7 +151,7 @@ export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess
                                     {purchaseRequest.paymentVerified ? (
                                         <p className="text-sm text-green-700">
                                             ✓ Payment verified by {purchaseRequest.paymentVerifiedBy?.name} on{' '}
-                                            {purchaseRequest.paymentVerifiedAt && new Date(purchaseRequest.paymentVerifiedAt).toLocaleDateString()}
+                                            {purchaseRequest.paymentVerifiedAt && new Date(purchaseRequest.paymentVerifiedAt).toLocaleString()}
                                         </p>
                                     ) : (
                                         <p className="text-sm text-orange-700">⚠ Payment verification pending</p>
@@ -199,23 +203,43 @@ export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess
                                 <p className="text-sm text-gray-600">Requested Delivery</p>
                                 <p className="text-sm font-semibold text-gray-900">{new Date(purchaseRequest.requestedDeliveryDate).toLocaleString()}</p>
                             </div>
+                            {purchaseRequest.bankDepositAmount !== undefined && purchaseRequest.bankDepositAmount > 0 && (
+                                <div>
+                                    <p className="text-sm text-gray-600">Bank Deposit</p>
+                                    <p className="text-sm font-semibold text-gray-900">{purchaseRequest.bankDepositAmount.toLocaleString()} SAR</p>
+                                </div>
+                            )}
                         </div>
-                        {purchaseRequest.receiptUrl && (
-                            <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-4">
+                            {purchaseRequest.receiptUrl && (
                                 <a
                                     href={purchaseRequest.receiptUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                                    className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 transition-colors"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
-                                    View Receipt
+                                    View Fuel Receipt
                                 </a>
-                            </div>
-                        )}
+                            )}
+                            {purchaseRequest.bankDepositReceiptUrl && (
+                                <a
+                                    href={purchaseRequest.bankDepositReceiptUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 transition-colors"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    View Deposit Receipt
+                                </a>
+                            )}
+                        </div>
                     </div>
 
                     {/* Credits Information */}
@@ -254,7 +278,8 @@ export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess
                     {needsPaymentVerification && (
                         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
                             <p className="text-sm text-orange-700 font-medium">
-                                ⚠ Payment verification required before approval. Please ask an accountant to verify the payment.
+                                ⚠ Payment verification required before approval.
+                                This request has an attached receipt or bank deposit that must be verified by an accountant.
                             </p>
                         </div>
                     )}
@@ -357,10 +382,10 @@ export const PurchaseRequestReviewModal = ({ purchaseRequest, onClose, onSuccess
                                 </button>
                                 <button
                                     onClick={handleApprove}
-                                    disabled={submitting}
+                                    disabled={submitting || needsPaymentVerification}
                                     className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {submitting ? 'Processing...' : 'Confirm Approval'}
+                                    {submitting ? 'Processing...' : (needsPaymentVerification ? 'Waiting for Verification' : 'Confirm Approval')}
                                 </button>
                             </div>
                         </div>

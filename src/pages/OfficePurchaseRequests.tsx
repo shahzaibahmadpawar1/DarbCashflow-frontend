@@ -292,7 +292,7 @@ export const OfficePurchaseRequests = () => {
                                             </div>
                                         )}
                                         {/* Payment Verification Status */}
-                                        {pr.receiptUrl && !pr.usingCredits && (
+                                        {(pr.receiptUrl || pr.bankDepositReceiptUrl) && (
                                             <div className={`mt-3 p-3 rounded-lg border ${pr.paymentVerified
                                                 ? 'bg-green-50 border-green-200'
                                                 : 'bg-orange-50 border-orange-200'
@@ -350,7 +350,7 @@ export const OfficePurchaseRequests = () => {
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         {/* Accountant: Review Payment Button */}
-                                        {(isAccountant || isAdmin) && pr.status === 'PENDING' && pr.receiptUrl && !pr.usingCredits && !pr.paymentVerified && (
+                                        {(isAccountant || isAdmin) && pr.status === 'PENDING' && (pr.receiptUrl || pr.bankDepositReceiptUrl) && !pr.paymentVerified && (
                                             <button
                                                 onClick={() => setSelectedPaymentPR(pr)}
                                                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm whitespace-nowrap flex items-center justify-center gap-2"
@@ -385,6 +385,7 @@ export const OfficePurchaseRequests = () => {
             {selectedPR && (
                 <PurchaseRequestReviewModal
                     purchaseRequest={selectedPR}
+                    userRole={user?.role}
                     onClose={() => setSelectedPR(null)}
                     onSuccess={() => {
                         loadPurchaseRequests();

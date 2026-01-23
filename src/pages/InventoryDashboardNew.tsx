@@ -6,6 +6,7 @@ import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { AdminInventoryView } from '../components/inventory/AdminInventoryView';
 import { StationPurchaseRequests } from '../components/StationPurchaseRequests';
 import { CreditHistoryModal } from '../components/CreditHistoryModal';
+import { getLocalDateTimeString, convertLocalToUTC } from '../utils/dateTimeUtils';
 
 interface DailyShiftReading {
     id: string;
@@ -72,7 +73,7 @@ export const InventoryDashboard = () => {
     const [tankerFormData, setTankerFormData] = useState({
         fuelType: '',
         litersDelivered: '',
-        deliveryDate: new Date().toISOString().slice(0, 16),
+        deliveryDate: getLocalDateTimeString(), // Fixed: Use local time
         aramcoTicket: '',
         notes: '',
         receiptUrl: '',
@@ -286,7 +287,7 @@ export const InventoryDashboard = () => {
             await api.post(`/api/inventory/stations/${stationId}/deliveries`, {
                 fuelType: tankerFormData.fuelType,
                 litersDelivered: parseFloat(tankerFormData.litersDelivered),
-                deliveryDate: new Date(tankerFormData.deliveryDate).toISOString(),
+                deliveryDate: convertLocalToUTC(tankerFormData.deliveryDate), // Fixed: Convert to UTC
                 aramcoTicket: tankerFormData.aramcoTicket,
                 notes: tankerFormData.notes,
                 receiptUrl: tankerFormData.receiptUrl,
@@ -297,7 +298,7 @@ export const InventoryDashboard = () => {
             setTankerFormData({
                 fuelType: '',
                 litersDelivered: '',
-                deliveryDate: new Date().toISOString().slice(0, 16),
+                deliveryDate: getLocalDateTimeString(), // Fixed: Use local time
                 aramcoTicket: '',
                 notes: '',
                 receiptUrl: '',
@@ -408,6 +409,7 @@ export const InventoryDashboard = () => {
                 litersDelivered: editTankerData.litersDelivered,
                 deliveryDate: editTankerData.deliveryDate,
                 aramcoTicket: editTankerData.aramcoTicket,
+                invoiceNumber: editTankerData.invoiceNumber,
                 notes: editTankerData.notes,
                 receiptUrl: editTankerData.receiptUrl
             });
@@ -692,7 +694,7 @@ export const InventoryDashboard = () => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
 
-        const deliveryDate = new Date(delivery.deliveryDate).toLocaleDateString();
+        const deliveryDate = new Date(delivery.deliveryDate).toLocaleString();
         const deliveryTime = new Date(delivery.deliveryDate).toLocaleTimeString();
 
         // Get station name from the current station or delivery data
@@ -746,7 +748,7 @@ export const InventoryDashboard = () => {
     };
 
     const handleExportTankerCSV = (delivery: any) => {
-        const deliveryDate = new Date(delivery.deliveryDate).toLocaleDateString();
+        const deliveryDate = new Date(delivery.deliveryDate).toLocaleString();
         const deliveryTime = new Date(delivery.deliveryDate).toLocaleTimeString();
 
         let csv = 'Tanker Delivery Report\n\n';
@@ -1719,7 +1721,7 @@ export const InventoryDashboard = () => {
                                         {tankerHistory.map((delivery) => (
                                             <tr key={delivery.id} className="border-b border-gray-100 hover:bg-gray-50">
                                                 <td className="px-4 py-3 text-sm text-gray-900">
-                                                    {new Date(delivery.deliveryDate).toLocaleDateString()}
+                                                    {new Date(delivery.deliveryDate).toLocaleString()}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-900">
                                                     {getFuelTypeLabel(delivery.tank?.fuelType || delivery.fuelType)}
@@ -1728,7 +1730,7 @@ export const InventoryDashboard = () => {
                                                     {delivery.litersDelivered}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-600">
-                                                    {delivery.aramcoTicket || 'N/A'}
+                                                    {delivery.invoiceNumber || delivery.aramcoTicket || 'N/A'}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center justify-center gap-2">
@@ -1842,7 +1844,17 @@ export const InventoryDashboard = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Aramco Ticket #</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+                                    <input
+                                        type="text"
+                                        value={editTankerData.invoiceNumber || ''}
+                                        onChange={(e) => setEditTankerData({ ...editTankerData, invoiceNumber: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        placeholder="Enter invoice number"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Aramco Ticket # (Legacy)</label>
                                     <input
                                         type="text"
                                         value={editTankerData.aramcoTicket || ''}

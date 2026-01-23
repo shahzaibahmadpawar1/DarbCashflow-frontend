@@ -197,7 +197,7 @@ export const ProcurementDashboard = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-900">
-                                                {new Date(po.expectedDeliveryDate).toLocaleDateString()}
+                                                {new Date(po.expectedDeliveryDate).toLocaleString()}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
