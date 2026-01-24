@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 interface Station {
     id: string;
@@ -27,6 +28,7 @@ interface StationRates {
 }
 
 export const AdminFuelBuyingRates = () => {
+    const { isViewOnly } = useAuth();
     const [stationRates, setStationRates] = useState<StationRates[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingStation, setEditingStation] = useState<string | null>(null);
@@ -189,16 +191,18 @@ export const AdminFuelBuyingRates = () => {
                                                     <span className="text-sm text-gray-900">
                                                         {stationRate.rates[fuelType as keyof typeof stationRate.rates]?.toFixed(10) || '-'}
                                                     </span>
-                                                    <button
-                                                        onClick={() => handleEdit(
-                                                            stationRate.stationId,
-                                                            fuelType,
-                                                            stationRate.rates[fuelType as keyof typeof stationRate.rates]
-                                                        )}
-                                                        className="text-primary hover:text-primary/80 text-xs"
-                                                    >
-                                                        {stationRate.rates[fuelType as keyof typeof stationRate.rates] ? 'Edit' : 'Set'}
-                                                    </button>
+                                                    {!isViewOnly && (
+                                                        <button
+                                                            onClick={() => handleEdit(
+                                                                stationRate.stationId,
+                                                                fuelType,
+                                                                stationRate.rates[fuelType as keyof typeof stationRate.rates]
+                                                            )}
+                                                            className="text-primary hover:text-primary/80 text-xs"
+                                                        >
+                                                            {stationRate.rates[fuelType as keyof typeof stationRate.rates] ? 'Edit' : 'Set'}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
                                         </td>

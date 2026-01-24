@@ -115,7 +115,7 @@ export const StationPurchaseRequests = ({ stationId, stationName, onPOReceived }
         <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-gray-900">Purchase Requests</h3>
+                <div></div>
                 {!isViewOnly && (
                     <button
                         onClick={() => setShowCreateModal(true)}

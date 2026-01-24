@@ -161,7 +161,7 @@ export const ProcurementConfirmModal = ({ purchaseOrder, onClose, onSuccess }: P
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Aramco PO Date & Time *
+                                Actual Delivery Date & Time *
                             </label>
                             <input
                                 type="datetime-local"

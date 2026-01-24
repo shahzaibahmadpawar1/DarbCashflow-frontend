@@ -9,10 +9,10 @@ import { InventoryDashboard } from './pages/InventoryDashboardNew';
 import { Employees } from './pages/Employees';
 import { Stations } from './pages/StationsNew';
 import { OrganizationStructure } from './pages/OrganizationStructure';
-import { OfficePurchaseRequests } from './pages/OfficePurchaseRequests';
 import { AdminFuelBuyingRates } from './pages/AdminFuelBuyingRates';
 import { AdminTransporters } from './pages/AdminTransporters';
 import { ProcurementDashboard } from './pages/ProcurementDashboard';
+import { PurchaseRequestsRouter } from './pages/PurchaseRequestsRouter';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
@@ -54,7 +54,7 @@ function App() {
         <Route
           path="/floating-cash"
           element={
-            <ProtectedRoute allowedRoles={['Admin']}>
+            <ProtectedRoute allowedRoles={['Admin', 'ViewOnly']}>
               <Layout>
                 <FloatingCashView />
               </Layout>
@@ -104,9 +104,9 @@ function App() {
         <Route
           path="/purchase-requests"
           element={
-            <ProtectedRoute allowedRoles={['OU', 'Admin', 'Accountant', 'ViewOnly']}>
+            <ProtectedRoute allowedRoles={['OU', 'Admin', 'Accountant', 'ViewOnly', 'SM']}>
               <Layout>
-                <OfficePurchaseRequests />
+                <PurchaseRequestsRouter />
               </Layout>
             </ProtectedRoute>
           }
@@ -114,7 +114,7 @@ function App() {
         <Route
           path="/procurement"
           element={
-            <ProtectedRoute allowedRoles={['Procurement', 'Admin']}>
+            <ProtectedRoute allowedRoles={['Procurement', 'Admin', 'ViewOnly']}>
               <Layout>
                 <ProcurementDashboard />
               </Layout>
@@ -124,7 +124,7 @@ function App() {
         <Route
           path="/admin/fuel-buying-rates"
           element={
-            <ProtectedRoute allowedRoles={['Admin']}>
+            <ProtectedRoute allowedRoles={['Admin', 'ViewOnly']}>
               <Layout>
                 <AdminFuelBuyingRates />
               </Layout>
@@ -134,7 +134,7 @@ function App() {
         <Route
           path="/admin/transporters"
           element={
-            <ProtectedRoute allowedRoles={['Admin']}>
+            <ProtectedRoute allowedRoles={['Admin', 'ViewOnly']}>
               <Layout>
                 <AdminTransporters />
               </Layout>

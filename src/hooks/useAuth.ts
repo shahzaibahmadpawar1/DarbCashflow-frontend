@@ -60,6 +60,7 @@ export const useAuth = () => {
   const isAdmin = user?.role === 'Admin';
   const isOfficeUser = user?.role === 'OU';
   const isProcurement = user?.role === 'Procurement';
+  const isAccountant = user?.role === 'Accountant';
   // Role checks (not including admin in SM/AM checks for dashboard display)
   const isSM = user?.role === 'SM';
   const isAM = user?.role === 'AM';
@@ -69,6 +70,7 @@ export const useAuth = () => {
   const canManageArea = user?.role === 'AM' || isAdmin;
   // Office User can view all stations but cannot edit
   const canViewAllStations = isAdmin || isOfficeUser;
+  const isOfficeLikeRole = ['OU', 'Accountant', 'ViewOnly', 'Procurement'].includes(user?.role || '');
 
   return {
     user,
@@ -79,9 +81,11 @@ export const useAuth = () => {
     isAdmin,
     isOfficeUser,
     isProcurement,
+    isAccountant,
     isSM,
     isAM,
     isViewOnly,
+    isOfficeLikeRole,
     canManageStation,
     canManageArea,
     canViewAllStations,

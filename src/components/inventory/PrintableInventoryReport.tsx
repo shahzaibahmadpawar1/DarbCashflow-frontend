@@ -40,113 +40,227 @@ export const PrintableInventoryReport = React.forwardRef<HTMLDivElement, Printab
 
         const getDateRangeText = () => {
             if (dateFilterType === 'single') {
-                return `Date: ${new Date(singleDate!).toLocaleDateString()}`;
+                return new Date(singleDate!).toLocaleDateString();
             } else if (dateFilterType === 'range') {
-                return `Period: ${new Date(startDate!).toLocaleDateString()} - ${new Date(endDate!).toLocaleDateString()}`;
+                return `${new Date(startDate!).toLocaleDateString()} - ${new Date(endDate!).toLocaleDateString()}`;
             }
             return 'All Time';
         };
 
         return (
-            <div ref={ref} className="p-8 bg-white">
+            <div ref={ref} style={{ fontFamily: 'Arial, sans-serif', padding: '20px', backgroundColor: 'white' }}>
+                <style>{`
+                    @media print {
+                        body { margin: 0; padding: 0; }
+                        @page { margin: 15mm; size: A4; }
+                        .page-break { page-break-before: always; }
+                        .no-break { page-break-inside: avoid; }
+                    }
+                    h1 { 
+                        color: #333; 
+                        border-bottom: 2px solid #007bff; 
+                        padding-bottom: 10px; 
+                        margin-bottom: 5px;
+                        font-size: 24px;
+                    }
+                    h2 { 
+                        color: #555; 
+                        margin-top: 20px; 
+                        font-size: 18px;
+                        margin-bottom: 10px;
+                    }
+                    .info-grid { 
+                        display: grid; 
+                        grid-template-columns: 1fr 1fr; 
+                        gap: 10px; 
+                        margin: 15px 0; 
+                    }
+                    .info-item { 
+                        padding: 8px; 
+                        background: #f5f5f5; 
+                        border-radius: 4px; 
+                    }
+                    .info-label { 
+                        font-weight: bold; 
+                        color: #666; 
+                        font-size: 12px;
+                    }
+                    .info-value {
+                        color: #333;
+                        font-size: 14px;
+                        margin-top: 2px;
+                    }
+                    table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        margin: 15px 0; 
+                        font-size: 11px;
+                    }
+                    th, td { 
+                        border: 1px solid #ddd; 
+                        padding: 6px 8px; 
+                        text-align: left; 
+                    }
+                    th { 
+                        background-color: #007bff; 
+                        color: white; 
+                        font-weight: bold;
+                        font-size: 11px;
+                    }
+                    tr:nth-child(even) { 
+                        background-color: #f9f9f9; 
+                    }
+                    .totals-row {
+                        background-color: #e9ecef !important;
+                        font-weight: bold;
+                    }
+                    .text-right { text-align: right; }
+                    .summary-section {
+                        background: #f8f9fa;
+                        padding: 15px;
+                        border-radius: 8px;
+                        margin: 15px 0;
+                    }
+                    .fuel-breakdown {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 8px;
+                        margin-top: 8px;
+                        font-size: 11px;
+                    }
+                    .fuel-item {
+                        padding: 4px 8px;
+                        background: white;
+                        border-radius: 4px;
+                    }
+                    .footer {
+                        margin-top: 20px;
+                        padding-top: 10px;
+                        border-top: 1px solid #ddd;
+                        text-align: center;
+                        font-size: 10px;
+                        color: #666;
+                    }
+                `}</style>
+
                 {/* Header */}
-                <div className="text-center mb-8 border-b-2 border-gray-800 pb-4">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Darb Station</h1>
-                    <h2 className="text-xl font-semibold text-gray-700">Inventory Sales Report</h2>
-                    <p className="text-sm text-gray-600 mt-2">
-                        Station Type: <span className="font-semibold capitalize">{stationFilter}</span> • {getDateRangeText()}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                        Generated on: {new Date().toLocaleString()}
-                    </p>
+                <h1>Inventory Sales Report</h1>
+
+                <div className="info-grid">
+                    <div className="info-item">
+                        <div className="info-label">Station Type:</div>
+                        <div className="info-value" style={{ textTransform: 'capitalize' }}>{stationFilter}</div>
+                    </div>
+                    <div className="info-item">
+                        <div className="info-label">Date Range:</div>
+                        <div className="info-value">{getDateRangeText()}</div>
+                    </div>
+                    <div className="info-item">
+                        <div className="info-label">Total Stations:</div>
+                        <div className="info-value">{stations.length}</div>
+                    </div>
+                    <div className="info-item">
+                        <div className="info-label">Generated On:</div>
+                        <div className="info-value">{new Date().toLocaleString()}</div>
+                    </div>
                 </div>
 
                 {/* Summary Section */}
-                <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-300">
-                    <h3 className="text-lg font-bold text-gray-900 mb-3">Summary</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-sm text-gray-600">Total Stations:</p>
-                            <p className="text-xl font-bold text-gray-900">{stations.length}</p>
+                <div className="summary-section no-break">
+                    <h2 style={{ marginTop: 0 }}>Summary</h2>
+                    <div className="info-grid">
+                        <div className="info-item">
+                            <div className="info-label">Total Revenue:</div>
+                            <div className="info-value" style={{ color: '#28a745', fontWeight: 'bold', fontSize: '16px' }}>
+                                {totalRevenue.toFixed(2)} SAR
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-sm text-gray-600">Total Revenue:</p>
-                            <p className="text-xl font-bold text-green-600">{totalRevenue.toFixed(2)} SAR</p>
+                        <div className="info-item">
+                            <div className="info-label">Total Volume:</div>
+                            <div className="info-value" style={{ color: '#007bff', fontWeight: 'bold', fontSize: '16px' }}>
+                                {totalLiters.toFixed(2)} L
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-sm text-gray-600">Total Volume:</p>
-                            <p className="text-xl font-bold text-blue-600">{totalLiters.toFixed(2)} L</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-600">Fuel Breakdown:</p>
-                            <div className="text-xs space-y-1 mt-1">
-                                <p>91 Gasoline: <span className="font-semibold">{total91Liters.toFixed(2)} L</span></p>
-                                <p>95 Gasoline: <span className="font-semibold">{total95Liters.toFixed(2)} L</span></p>
-                                <p>98 Gasoline: <span className="font-semibold">{total98Liters.toFixed(2)} L</span></p>
-                                <p>Diesel: <span className="font-semibold">{totalDieselLiters.toFixed(2)} L</span></p>
+                    </div>
+
+                    <div style={{ marginTop: '10px' }}>
+                        <div className="info-label">Fuel Breakdown:</div>
+                        <div className="fuel-breakdown">
+                            <div className="fuel-item">
+                                <strong>91 Gasoline:</strong> {total91Liters.toFixed(2)} L
+                            </div>
+                            <div className="fuel-item">
+                                <strong>95 Gasoline:</strong> {total95Liters.toFixed(2)} L
+                            </div>
+                            <div className="fuel-item">
+                                <strong>98 Gasoline:</strong> {total98Liters.toFixed(2)} L
+                            </div>
+                            <div className="fuel-item">
+                                <strong>Diesel:</strong> {totalDieselLiters.toFixed(2)} L
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Stations Table */}
-                <table className="w-full border-collapse border border-gray-400 text-sm">
+                <h2>Station Details</h2>
+                <table>
                     <thead>
-                        <tr className="bg-gray-200">
-                            <th className="border border-gray-400 px-3 py-2 text-left font-semibold">#</th>
-                            <th className="border border-gray-400 px-3 py-2 text-left font-semibold">Station Name</th>
-                            <th className="border border-gray-400 px-3 py-2 text-left font-semibold">Type</th>
-                            <th className="border border-gray-400 px-3 py-2 text-right font-semibold">91 Gasoline (L)</th>
-                            <th className="border border-gray-400 px-3 py-2 text-right font-semibold">95 Gasoline (L)</th>
-                            <th className="border border-gray-400 px-3 py-2 text-right font-semibold">98 Gasoline (L)</th>
-                            <th className="border border-gray-400 px-3 py-2 text-right font-semibold">Diesel (L)</th>
-                            <th className="border border-gray-400 px-3 py-2 text-right font-semibold">Total Liters</th>
-                            <th className="border border-gray-400 px-3 py-2 text-right font-semibold">Total Amount (SAR)</th>
+                        <tr>
+                            <th style={{ width: '30px' }}>#</th>
+                            <th>Station Name</th>
+                            <th style={{ width: '80px' }}>Type</th>
+                            <th className="text-right" style={{ width: '70px' }}>91 Gas (L)</th>
+                            <th className="text-right" style={{ width: '70px' }}>95 Gas (L)</th>
+                            <th className="text-right" style={{ width: '70px' }}>98 Gas (L)</th>
+                            <th className="text-right" style={{ width: '70px' }}>Diesel (L)</th>
+                            <th className="text-right" style={{ width: '80px' }}>Total Liters</th>
+                            <th className="text-right" style={{ width: '90px' }}>Total Amount</th>
                         </tr>
                     </thead>
                     <tbody>
                         {stations.map((station, index) => (
-                            <tr key={station.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                <td className="border border-gray-400 px-3 py-2">{index + 1}</td>
-                                <td className="border border-gray-400 px-3 py-2 font-medium">{station.name}</td>
-                                <td className="border border-gray-400 px-3 py-2 text-xs">{station.stationType}</td>
-                                <td className="border border-gray-400 px-3 py-2 text-right">
+                            <tr key={station.id}>
+                                <td>{index + 1}</td>
+                                <td style={{ fontWeight: '500' }}>{station.name}</td>
+                                <td style={{ fontSize: '10px' }}>{station.stationType}</td>
+                                <td className="text-right">
                                     {(station.fuelBreakdown.gasoline91?.liters || 0).toFixed(2)}
                                 </td>
-                                <td className="border border-gray-400 px-3 py-2 text-right">
+                                <td className="text-right">
                                     {(station.fuelBreakdown.gasoline95?.liters || 0).toFixed(2)}
                                 </td>
-                                <td className="border border-gray-400 px-3 py-2 text-right">
+                                <td className="text-right">
                                     {(station.fuelBreakdown.gasoline98?.liters || 0).toFixed(2)}
                                 </td>
-                                <td className="border border-gray-400 px-3 py-2 text-right">
+                                <td className="text-right">
                                     {(station.fuelBreakdown.diesel?.liters || 0).toFixed(2)}
                                 </td>
-                                <td className="border border-gray-400 px-3 py-2 text-right font-semibold">
+                                <td className="text-right" style={{ fontWeight: 'bold' }}>
                                     {station.totalLiters.toFixed(2)}
                                 </td>
-                                <td className="border border-gray-400 px-3 py-2 text-right font-semibold">
+                                <td className="text-right" style={{ fontWeight: 'bold' }}>
                                     {station.totalRevenue.toFixed(2)}
                                 </td>
                             </tr>
                         ))}
                         {/* Totals Row */}
-                        <tr className="bg-gray-300 font-bold">
-                            <td colSpan={3} className="border border-gray-400 px-3 py-2 text-right">TOTAL:</td>
-                            <td className="border border-gray-400 px-3 py-2 text-right">{total91Liters.toFixed(2)}</td>
-                            <td className="border border-gray-400 px-3 py-2 text-right">{total95Liters.toFixed(2)}</td>
-                            <td className="border border-gray-400 px-3 py-2 text-right">{total98Liters.toFixed(2)}</td>
-                            <td className="border border-gray-400 px-3 py-2 text-right">{totalDieselLiters.toFixed(2)}</td>
-                            <td className="border border-gray-400 px-3 py-2 text-right">{totalLiters.toFixed(2)}</td>
-                            <td className="border border-gray-400 px-3 py-2 text-right">{totalRevenue.toFixed(2)}</td>
+                        <tr className="totals-row">
+                            <td colSpan={3} className="text-right">TOTAL:</td>
+                            <td className="text-right">{total91Liters.toFixed(2)}</td>
+                            <td className="text-right">{total95Liters.toFixed(2)}</td>
+                            <td className="text-right">{total98Liters.toFixed(2)}</td>
+                            <td className="text-right">{totalDieselLiters.toFixed(2)}</td>
+                            <td className="text-right">{totalLiters.toFixed(2)}</td>
+                            <td className="text-right">{totalRevenue.toFixed(2)}</td>
                         </tr>
                     </tbody>
                 </table>
 
                 {/* Footer */}
-                <div className="mt-8 pt-4 border-t border-gray-400 text-center text-xs text-gray-600">
+                <div className="footer">
                     <p>This is a computer-generated report. No signature is required.</p>
-                    <p className="mt-1">Darb Station - Fuel Management System</p>
+                    <p style={{ marginTop: '5px' }}>Darb Station - Fuel Management System</p>
                 </div>
             </div>
         );
@@ -154,3 +268,4 @@ export const PrintableInventoryReport = React.forwardRef<HTMLDivElement, Printab
 );
 
 PrintableInventoryReport.displayName = 'PrintableInventoryReport';
+

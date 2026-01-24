@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 interface Transporter {
     id: string;
@@ -10,6 +11,7 @@ interface Transporter {
 }
 
 export const AdminTransporters = () => {
+    const { isViewOnly } = useAuth();
     const [transporters, setTransporters] = useState<Transporter[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -117,12 +119,14 @@ export const AdminTransporters = () => {
                     <h1 className="text-3xl font-bold text-gray-900">Transporters</h1>
                     <p className="text-gray-600 mt-2">Manage fuel transporters and their default costs</p>
                 </div>
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                    + Add Transporter
-                </button>
+                {!isViewOnly && (
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                        + Add Transporter
+                    </button>
+                )}
             </div>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -177,8 +181,8 @@ export const AdminTransporters = () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${transporter.isActive
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-red-100 text-red-800'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-red-100 text-red-800'
                                         }`}>
                                         {transporter.isActive ? 'Active' : 'Inactive'}
                                     </span>
@@ -201,18 +205,22 @@ export const AdminTransporters = () => {
                                         </div>
                                     ) : (
                                         <div className="flex gap-3">
-                                            <button
-                                                onClick={() => startEdit(transporter)}
-                                                className="text-primary hover:text-primary/80"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleStatus(transporter.id)}
-                                                className={transporter.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}
-                                            >
-                                                {transporter.isActive ? 'Deactivate' : 'Activate'}
-                                            </button>
+                                            {!isViewOnly && (
+                                                <>
+                                                    <button
+                                                        onClick={() => startEdit(transporter)}
+                                                        className="text-primary hover:text-primary/80"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleToggleStatus(transporter.id)}
+                                                        className={transporter.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}
+                                                    >
+                                                        {transporter.isActive ? 'Deactivate' : 'Activate'}
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     )}
                                 </td>

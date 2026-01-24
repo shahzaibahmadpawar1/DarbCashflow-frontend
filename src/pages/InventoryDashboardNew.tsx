@@ -4,7 +4,6 @@ import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { AdminInventoryView } from '../components/inventory/AdminInventoryView';
-import { StationPurchaseRequests } from '../components/StationPurchaseRequests';
 import { CreditHistoryModal } from '../components/CreditHistoryModal';
 import { getLocalDateTimeString, convertLocalToUTC } from '../utils/dateTimeUtils';
 
@@ -86,7 +85,6 @@ export const InventoryDashboard = () => {
     const [showCreditHistory, setShowCreditHistory] = useState(false);
     const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
     const [showConsumptionReport, setShowConsumptionReport] = useState(false);
-    const [showPurchaseRequests, setShowPurchaseRequests] = useState(false);
 
     const [shiftHistory, setShiftHistory] = useState<any[]>([]);
     const [tankerHistory, setTankerHistory] = useState<any[]>([]);
@@ -781,6 +779,455 @@ export const InventoryDashboard = () => {
         }
     };
 
+    const handlePrintStationSalesReport = async () => {
+        if (!stationId) {
+            alert('No station selected');
+            return;
+        }
+
+        try {
+            // Load shift history using the correct endpoint
+            const shiftsRes = await api.get(`/api/inventory/shifts/stations/${stationId}/all`);
+            const shifts = shiftsRes.data.shifts || [];
+
+            // Calculate fuel breakdown from shift history
+            const fuelBreakdown = {
+                gasoline91: { liters: 0, amount: 0 },
+                gasoline95: { liters: 0, amount: 0 },
+                gasoline98: { liters: 0, amount: 0 },
+                diesel: { liters: 0, amount: 0 }
+            };
+
+            let totalRevenue = 0;
+            let totalLiters = 0;
+
+            shifts.forEach((shift: any) => {
+                shift.dailyShiftReadings?.forEach((reading: any) => {
+                    const fuelType = reading.nozzle?.fuelType;
+                    const liters = (reading.shiftALiters || 0) + (reading.shiftBLiters || 0);
+                    const amount = reading.totalAmount || 0;
+
+                    totalRevenue += amount;
+                    totalLiters += liters;
+
+                    if (fuelType === '91_GASOLINE') {
+                        fuelBreakdown.gasoline91.liters += liters;
+                        fuelBreakdown.gasoline91.amount += amount;
+                    } else if (fuelType === '95_GASOLINE') {
+                        fuelBreakdown.gasoline95.liters += liters;
+                        fuelBreakdown.gasoline95.amount += amount;
+                    } else if (fuelType === '98_GASOLINE') {
+                        fuelBreakdown.gasoline98.liters += liters;
+                        fuelBreakdown.gasoline98.amount += amount;
+                    } else if (fuelType === 'DIESEL') {
+                        fuelBreakdown.diesel.liters += liters;
+                        fuelBreakdown.diesel.amount += amount;
+                    }
+                });
+            });
+
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                alert('Please allow popups to print the report');
+                return;
+            }
+
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Station Sales Report - ${stationName}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 20px; }
+                            h1 { 
+                                color: #333; 
+                                border-bottom: 2px solid #007bff; 
+                                padding-bottom: 10px; 
+                                margin-bottom: 5px;
+                                font-size: 24px;
+                            }
+                            h2 { 
+                                color: #555; 
+                                margin-top: 20px; 
+                                font-size: 18px;
+                                margin-bottom: 10px;
+                            }
+                            .info-grid { 
+                                display: grid; 
+                                grid-template-columns: 1fr 1fr; 
+                                gap: 10px; 
+                                margin: 15px 0; 
+                            }
+                            .info-item { 
+                                padding: 8px; 
+                                background: #f5f5f5; 
+                                border-radius: 4px; 
+                            }
+                            .info-label { 
+                                font-weight: bold; 
+                                color: #666; 
+                                font-size: 12px;
+                            }
+                            .info-value {
+                                color: #333;
+                                font-size: 14px;
+                                margin-top: 2px;
+                            }
+                            .summary-section {
+                                background: #f8f9fa;
+                                padding: 15px;
+                                border-radius: 8px;
+                                margin: 15px 0;
+                            }
+                            .fuel-breakdown {
+                                display: grid;
+                                grid-template-columns: 1fr 1fr;
+                                gap: 8px;
+                                margin-top: 8px;
+                                font-size: 11px;
+                            }
+                            .fuel-item {
+                                padding: 4px 8px;
+                                background: white;
+                                border-radius: 4px;
+                            }
+                            table { 
+                                width: 100%; 
+                                border-collapse: collapse; 
+                                margin: 15px 0; 
+                                font-size: 11px;
+                            }
+                            th, td { 
+                                border: 1px solid #ddd; 
+                                padding: 6px 8px; 
+                                text-align: left; 
+                            }
+                            th { 
+                                background-color: #007bff; 
+                                color: white; 
+                                font-weight: bold;
+                            }
+                            tr:nth-child(even) { 
+                                background-color: #f9f9f9; 
+                            }
+                            .text-right { text-align: right; }
+                            .footer {
+                                margin-top: 20px;
+                                padding-top: 10px;
+                                border-top: 1px solid #ddd;
+                                text-align: center;
+                                font-size: 10px;
+                                color: #666;
+                            }
+                            @media print { 
+                                button { display: none; }
+                                @page { margin: 15mm; size: A4; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Station Sales Report</h1>
+                        
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Station Name:</div>
+                                <div class="info-value">${stationName}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Report Date:</div>
+                                <div class="info-value">${new Date().toLocaleDateString()}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Total Shifts:</div>
+                                <div class="info-value">${shifts.length}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Generated On:</div>
+                                <div class="info-value">${new Date().toLocaleString()}</div>
+                            </div>
+                        </div>
+
+                        <div class="summary-section">
+                            <h2 style="margin-top: 0;">Summary</h2>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <div class="info-label">Total Revenue:</div>
+                                    <div class="info-value" style="color: #28a745; font-weight: bold; font-size: 16px;">
+                                        ${totalRevenue.toFixed(2)} SAR
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Total Volume:</div>
+                                    <div class="info-value" style="color: #007bff; font-weight: bold; font-size: 16px;">
+                                        ${totalLiters.toFixed(2)} L
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 10px;">
+                                <div class="info-label">Fuel Breakdown:</div>
+                                <div class="fuel-breakdown">
+                                    <div class="fuel-item">
+                                        <strong>91 Gasoline:</strong> ${fuelBreakdown.gasoline91.liters.toFixed(2)} L
+                                    </div>
+                                    <div class="fuel-item">
+                                        <strong>95 Gasoline:</strong> ${fuelBreakdown.gasoline95.liters.toFixed(2)} L
+                                    </div>
+                                    <div class="fuel-item">
+                                        <strong>98 Gasoline:</strong> ${fuelBreakdown.gasoline98.liters.toFixed(2)} L
+                                    </div>
+                                    <div class="fuel-item">
+                                        <strong>Diesel:</strong> ${fuelBreakdown.diesel.liters.toFixed(2)} L
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2>Fuel Type Details</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fuel Type</th>
+                                    <th class="text-right">Volume (L)</th>
+                                    <th class="text-right">Revenue (SAR)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>91 Gasoline</td>
+                                    <td class="text-right">${fuelBreakdown.gasoline91.liters.toFixed(2)}</td>
+                                    <td class="text-right">${fuelBreakdown.gasoline91.amount.toFixed(2)}</td>
+                                </tr>
+                                <tr>
+                                    <td>95 Gasoline</td>
+                                    <td class="text-right">${fuelBreakdown.gasoline95.liters.toFixed(2)}</td>
+                                    <td class="text-right">${fuelBreakdown.gasoline95.amount.toFixed(2)}</td>
+                                </tr>
+                                <tr>
+                                    <td>98 Gasoline</td>
+                                    <td class="text-right">${fuelBreakdown.gasoline98.liters.toFixed(2)}</td>
+                                    <td class="text-right">${fuelBreakdown.gasoline98.amount.toFixed(2)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Diesel</td>
+                                    <td class="text-right">${fuelBreakdown.diesel.liters.toFixed(2)}</td>
+                                    <td class="text-right">${fuelBreakdown.diesel.amount.toFixed(2)}</td>
+                                </tr>
+                                <tr style="background-color: #e9ecef; font-weight: bold;">
+                                    <td>TOTAL</td>
+                                    <td class="text-right">${totalLiters.toFixed(2)}</td>
+                                    <td class="text-right">${totalRevenue.toFixed(2)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="footer">
+                            <p>This is a computer-generated report. No signature is required.</p>
+                            <p style="margin-top: 5px;">Darb Station - Fuel Management System</p>
+                        </div>
+
+                        <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print</button>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+        } catch (error) {
+            console.error('Failed to load shift history:', error);
+            alert('Failed to load shift history. Please try again.');
+        }
+    };
+
+    const handlePrintTankInventory = async () => {
+        if (!stationId) {
+            alert('No station selected');
+            return;
+        }
+
+        try {
+            // Load tank data only
+            const tanksRes = await api.get(`/api/inventory/stations/${stationId}/tanks`);
+            const tanksData = tanksRes.data.tanks || [];
+
+            // Calculate current total level only
+            const totalCurrentLevel = tanksData.reduce((sum: number, tank: any) => sum + (tank.currentLevel || 0), 0);
+
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                alert('Please allow popups to print the report');
+                return;
+            }
+
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Fuel Tank Inventory - ${stationName}</title>
+                        <style>
+                            * { margin: 0; padding: 0; box-sizing: border-box; }
+                            body { 
+                                font-family: Arial, sans-serif; 
+                                padding: 20px;
+                                margin: 0;
+                            }
+                            h1 { 
+                                color: #333; 
+                                border-bottom: 2px solid #007bff; 
+                                padding-bottom: 10px; 
+                                margin-bottom: 5px;
+                                margin-top: 0;
+                                font-size: 24px;
+                            }
+                            h2 { 
+                                color: #555; 
+                                margin-top: 20px; 
+                                font-size: 18px;
+                                margin-bottom: 10px;
+                            }
+                            .info-grid { 
+                                display: grid; 
+                                grid-template-columns: 1fr 1fr; 
+                                gap: 10px; 
+                                margin: 15px 0; 
+                            }
+                            .info-item { 
+                                padding: 8px; 
+                                background: #f5f5f5; 
+                                border-radius: 4px; 
+                            }
+                            .info-label { 
+                                font-weight: bold; 
+                                color: #666; 
+                                font-size: 12px;
+                            }
+                            .info-value {
+                                color: #333;
+                                font-size: 14px;
+                                margin-top: 2px;
+                            }
+                            .summary-section {
+                                background: #f8f9fa;
+                                padding: 15px;
+                                border-radius: 8px;
+                                margin: 15px 0;
+                            }
+                            table { 
+                                width: 100%; 
+                                border-collapse: collapse; 
+                                margin: 15px 0; 
+                                font-size: 11px;
+                            }
+                            th, td { 
+                                border: 1px solid #ddd; 
+                                padding: 6px 8px; 
+                                text-align: left; 
+                            }
+                            th { 
+                                background-color: #007bff; 
+                                color: white; 
+                                font-weight: bold;
+                            }
+                            tr:nth-child(even) { 
+                                background-color: #f9f9f9; 
+                            }
+                            .text-right { text-align: right; }
+                            .footer {
+                                margin-top: 20px;
+                                padding-top: 10px;
+                                border-top: 1px solid #ddd;
+                                text-align: center;
+                                font-size: 10px;
+                                color: #666;
+                            }
+                            @media print { 
+                                body { 
+                                    margin: 0;
+                                    padding: 15mm;
+                                }
+                                button { display: none; }
+                                @page { 
+                                    margin: 0;
+                                    size: A4;
+                                }
+                                h1 { page-break-before: avoid; }
+                                .info-grid { page-break-inside: avoid; }
+                                table { page-break-inside: auto; }
+                                tr { page-break-inside: avoid; page-break-after: auto; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Fuel Tank Inventory Report</h1>
+                        
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Station Name:</div>
+                                <div class="info-value">${stationName}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Report Date:</div>
+                                <div class="info-value">${new Date().toLocaleDateString()}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Total Tanks:</div>
+                                <div class="info-value">${tanksData.length}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Generated On:</div>
+                                <div class="info-value">${new Date().toLocaleString()}</div>
+                            </div>
+                        </div>
+
+                        <div class="summary-section">
+                            <h2 style="margin-top: 0;">Summary</h2>
+                            <div class="info-item" style="max-width: 300px;">
+                                <div class="info-label">Current Total Level:</div>
+                                <div class="info-value" style="color: #007bff; font-weight: bold; font-size: 16px;">
+                                    ${totalCurrentLevel.toFixed(2)} L
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2>Tank Details</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tank #</th>
+                                    <th>Fuel Type</th>
+                                    <th class="text-right">Current Level (L)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tanksData.map((tank: any, index: number) => {
+                const currentLevel = tank.currentLevel || 0;
+
+                return `
+                                        <tr>
+                                            <td>${index + 1}</td>
+                                            <td>${tank.fuelType === '91_GASOLINE' ? '91 Gasoline' :
+                        tank.fuelType === '95_GASOLINE' ? '95 Gasoline' :
+                            tank.fuelType === '98_GASOLINE' ? '98 Gasoline' :
+                                tank.fuelType === 'DIESEL' ? 'Diesel' : tank.fuelType}</td>
+                                            <td class="text-right">${currentLevel.toFixed(2)}</td>
+                                        </tr>
+                                    `;
+            }).join('')}
+                            </tbody>
+                        </table>
+
+                        <div class="footer">
+                            <p>This is a computer-generated report. No signature is required.</p>
+                            <p style="margin-top: 5px;">Darb Station - Fuel Management System</p>
+                        </div>
+
+                        <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print</button>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+        } catch (error) {
+            console.error('Failed to load tank inventory:', error);
+            alert('Failed to load tank inventory. Please try again.');
+        }
+    };
+
     const calculateTotalRevenue = () => {
         return currentShift?.dailyShiftReadings?.reduce((sum, r) => sum + r.totalAmount, 0) || 0;
     };
@@ -910,20 +1357,7 @@ export const InventoryDashboard = () => {
                             </svg>
                             Credit History
                         </button>
-                        {canManageStation && (
-                            <button
-                                onClick={() => setShowPurchaseRequests(!showPurchaseRequests)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${showPurchaseRequests
-                                    ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                                    : 'bg-yellow-600 text-white hover:bg-yellow-700'
-                                    }`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                Purchase Requests
-                            </button>
-                        )}
+
                         {!currentShift && canManageStation && (
                             <button
                                 onClick={() => setShowOpenShiftModal(true)}
@@ -945,6 +1379,15 @@ export const InventoryDashboard = () => {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-semibold text-gray-900">Total Station Inventory</h2>
+                        <button
+                            onClick={handlePrintStationSalesReport}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            Print Sales Report
+                        </button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="p-4 bg-green-50 rounded-lg border border-green-100 flex justify-between items-center">
@@ -990,7 +1433,18 @@ export const InventoryDashboard = () => {
 
             {/* Tank Levels Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold mb-4 text-gray-900">Fuel Tank Levels</h2>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900">Fuel Tank Levels</h2>
+                    <button
+                        onClick={handlePrintTankInventory}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Print Tank Inventory
+                    </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {tanks.map((tank) => {
                         const currentLevel = tank.currentLevel ?? 0;
@@ -1131,7 +1585,7 @@ export const InventoryDashboard = () => {
                         </table>
                     </div>
                     {/* Action Buttons */}
-                    {!currentShift.locked && canManageStation && (
+                    {!currentShift.locked && canManageStation && !isViewOnly && (
                         <div className="mt-6 flex gap-3">
                             <button
                                 onClick={handleSaveReadings}
@@ -1225,7 +1679,7 @@ export const InventoryDashboard = () => {
                     </div>
 
                     <div className="flex gap-3 flex-wrap mt-6">
-                        {!currentShift.locked && canManageStation && (
+                        {!currentShift.locked && canManageStation && !isViewOnly && (
                             <>
                                 <button
                                     onClick={handleSavePayment}
@@ -1260,16 +1714,7 @@ export const InventoryDashboard = () => {
                 </div>
             )}
 
-            {/* Purchase Requests Section */}
-            {canManageStation && showPurchaseRequests && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <StationPurchaseRequests
-                        stationId={stationId}
-                        stationName={stationName}
-                        onPOReceived={() => loadCurrentShift(stationId)}
-                    />
-                </div>
-            )}
+
 
             {/* Open Shift Modal */}
             {showOpenShiftModal && (
@@ -1544,7 +1989,7 @@ export const InventoryDashboard = () => {
                                                             </svg>
                                                         </button>
                                                         {/* Unlock button - Admin only, for locked shifts */}
-                                                        {user?.role === 'Admin' && shift.locked && (
+                                                        {user?.role === 'Admin' && shift.locked && !isViewOnly && (
                                                             <button
                                                                 onClick={() => handleUnlockShift(shift.id)}
                                                                 disabled={saving}
@@ -1557,7 +2002,7 @@ export const InventoryDashboard = () => {
                                                             </button>
                                                         )}
                                                         {/* Delete button - Admin can delete any shift, SM can delete unlocked shifts */}
-                                                        {(user?.role === 'Admin' || (user?.role === 'SM' && !shift.locked)) && (
+                                                        {(user?.role === 'Admin' || (user?.role === 'SM' && !shift.locked)) && !isViewOnly && (
                                                             <button
                                                                 onClick={() => handleDeleteShift(shift.id)}
                                                                 disabled={saving}
@@ -1747,7 +2192,7 @@ export const InventoryDashboard = () => {
                                                         )}
 
                                                         {/* Edit Button */}
-                                                        {(user?.role === 'Admin' || (user?.role === 'SM' && delivery.isUnlocked)) && (
+                                                        {(user?.role === 'Admin' || (user?.role === 'SM' && delivery.isUnlocked)) && !isViewOnly && (
                                                             <button
                                                                 onClick={() => handleEditTanker(delivery)}
                                                                 className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
@@ -1760,7 +2205,7 @@ export const InventoryDashboard = () => {
                                                         )}
 
                                                         {/* Admin Unlock/Lock Button */}
-                                                        {user?.role === 'Admin' && (
+                                                        {user?.role === 'Admin' && !isViewOnly && (
                                                             <button
                                                                 onClick={() => handleToggleTankerLock(delivery)}
                                                                 className={`p-2 rounded-lg transition-colors ${delivery.isUnlocked ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-50'}`}

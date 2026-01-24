@@ -39,6 +39,13 @@ export interface PurchaseOrder {
         paymentVerified?: boolean;
         paymentVerifiedAt?: string;
         paymentVerifiedBy?: { id: string; name: string; employeeId?: string };
+        createdAt?: string;
+        approvedAt?: string;
+        approvedBy?: { id: string; name: string; employeeId?: string };
+        rejectedAt?: string;
+        rejectedBy?: { id: string; name: string; employeeId?: string };
+        reviewedAt?: string;
+        reviewedBy?: { id: string; name: string; employeeId?: string };
         station: { name: string };
         creator?: { id: string; name: string; employeeId?: string };
     };
@@ -413,6 +420,87 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                     </div>
                     ` : ''}
 
+                    <!-- Request Lifecycle Timeline -->
+                    <div class="section purple" style="background: linear-gradient(to right, #f5f3ff, #faf5ff);">
+                        <h4 class="section-title">Request Lifecycle Timeline</h4>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            ${purchaseOrder.purchaseRequest?.createdAt ? `
+                            <div style="display: flex; gap: 12px; align-items: flex-start; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                                <div style="width: 24px; height: 24px; background: #dbeafe; color: #1e40af; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: bold; flex-shrink: 0;">1</div>
+                                <div>
+                                    <p style="margin: 0; font-size: 10pt; font-weight: 600; color: #111827;">Purchase Request Created</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #6b7280;">by ${purchaseOrder.purchaseRequest.creator?.name || 'Station Manager'}${purchaseOrder.purchaseRequest.creator?.employeeId ? ` (${purchaseOrder.purchaseRequest.creator.employeeId})` : ''}</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #9ca3af;">${new Date(purchaseOrder.purchaseRequest.createdAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            ${purchaseOrder.purchaseRequest?.paymentVerifiedAt ? `
+                            <div style="display: flex; gap: 12px; align-items: flex-start; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                                <div style="width: 24px; height: 24px; background: #dcfce7; color: #166534; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: bold; flex-shrink: 0;">2</div>
+                                <div>
+                                    <p style="margin: 0; font-size: 10pt; font-weight: 600; color: #111827;">Payment Verified</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #6b7280;">by ${purchaseOrder.purchaseRequest.paymentVerifiedBy?.name || 'Accountant'}${purchaseOrder.purchaseRequest.paymentVerifiedBy?.employeeId ? ` (${purchaseOrder.purchaseRequest.paymentVerifiedBy.employeeId})` : ''}</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #9ca3af;">${new Date(purchaseOrder.purchaseRequest.paymentVerifiedAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            ${purchaseOrder.purchaseRequest?.approvedAt ? `
+                            <div style="display: flex; gap: 12px; align-items: flex-start; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                                <div style="width: 24px; height: 24px; background: #dcfce7; color: #166534; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: bold; flex-shrink: 0;">3</div>
+                                <div>
+                                    <p style="margin: 0; font-size: 10pt; font-weight: 600; color: #15803d;">Request Approved</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #6b7280;">by ${purchaseOrder.purchaseRequest.approvedBy?.name || purchaseOrder.purchaseRequest.reviewedBy?.name || 'Office User'}${(purchaseOrder.purchaseRequest.approvedBy?.employeeId || purchaseOrder.purchaseRequest.reviewedBy?.employeeId) ? ` (${purchaseOrder.purchaseRequest.approvedBy?.employeeId || purchaseOrder.purchaseRequest.reviewedBy?.employeeId})` : ''}</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #9ca3af;">${new Date(purchaseOrder.purchaseRequest.approvedAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            ` : purchaseOrder.purchaseRequest?.rejectedAt ? `
+                            <div style="display: flex; gap: 12px; align-items: flex-start; background: white; padding: 10px; border-radius: 6px; border: 1px solid #fee2e2;">
+                                <div style="width: 24px; height: 24px; background: #fee2e2; color: #991b1b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: bold; flex-shrink: 0;">✗</div>
+                                <div>
+                                    <p style="margin: 0; font-size: 10pt; font-weight: 600; color: #b91c1c;">Request Rejected</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #6b7280;">by ${purchaseOrder.purchaseRequest.rejectedBy?.name || purchaseOrder.purchaseRequest.reviewedBy?.name || 'Office User'}${(purchaseOrder.purchaseRequest.rejectedBy?.employeeId || purchaseOrder.purchaseRequest.reviewedBy?.employeeId) ? ` (${purchaseOrder.purchaseRequest.rejectedBy?.employeeId || purchaseOrder.purchaseRequest.reviewedBy?.employeeId})` : ''}</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #9ca3af;">${new Date(purchaseOrder.purchaseRequest.rejectedAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            ${purchaseOrder.createdAt ? `
+                            <div style="display: flex; gap: 12px; align-items: flex-start; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                                <div style="width: 24px; height: 24px; background: #f3e8ff; color: #6b21a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: bold; flex-shrink: 0;">4</div>
+                                <div>
+                                    <p style="margin: 0; font-size: 10pt; font-weight: 600; color: #111827;">Purchase Order Generated</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #6b7280;">by ${purchaseOrder.creator?.name || 'Office User'}${purchaseOrder.creator?.employeeId ? ` (${purchaseOrder.creator.employeeId})` : ''}</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #9ca3af;">${new Date(purchaseOrder.createdAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            ${purchaseOrder.procurementConfirmedAt ? `
+                            <div style="display: flex; gap: 12px; align-items: flex-start; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                                <div style="width: 24px; height: 24px; background: #dbeafe; color: #1e40af; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: bold; flex-shrink: 0;">5</div>
+                                <div>
+                                    <p style="margin: 0; font-size: 10pt; font-weight: 600; color: #111827;">Procurement Confirmed</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #6b7280;">by ${purchaseOrder.procurementConfirmedBy?.name || 'Procurement'}${purchaseOrder.procurementConfirmedBy?.employeeId ? ` (${purchaseOrder.procurementConfirmedBy.employeeId})` : ''}</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #9ca3af;">${new Date(purchaseOrder.procurementConfirmedAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            ${purchaseOrder.receivedAt ? `
+                            <div style="display: flex; gap: 12px; align-items: flex-start; background: white; padding: 10px; border-radius: 6px; border: 1px solid #dcfce7;">
+                                <div style="width: 24px; height: 24px; background: #dcfce7; color: #166534; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: bold; flex-shrink: 0;">✓</div>
+                                <div>
+                                    <p style="margin: 0; font-size: 10pt; font-weight: 600; color: #15803d;">Delivery Received</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #6b7280;">by ${purchaseOrder.receiver?.name || 'Station Manager'}${purchaseOrder.receiver?.employeeId ? ` (${purchaseOrder.receiver.employeeId})` : ''}</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 8pt; color: #9ca3af;">${new Date(purchaseOrder.receivedAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
                     <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11pt;">Print</button>
                 </body>
             </html>
@@ -655,6 +743,144 @@ export const PurchaseOrderDetailsModal = ({ purchaseOrder, onClose, onSuccess }:
                                 </div>
                             </div>
                         )}
+
+                        {/* Request Lifecycle Timeline */}
+                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg border border-indigo-200 mb-6">
+                            <h4 className="text-md font-semibold text-gray-900 mb-3">Request Lifecycle Timeline</h4>
+                            <div className="space-y-3">
+                                {/* PR Created */}
+                                {purchaseOrder.purchaseRequest?.createdAt && (
+                                    <div className="flex items-start gap-3 bg-white p-3 rounded-lg border border-gray-200">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <span className="text-blue-600 font-bold text-sm">1</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-gray-900">Purchase Request Created</p>
+                                            <p className="text-xs text-gray-600">
+                                                by {purchaseOrder.purchaseRequest.creator?.name || 'Station Manager'}
+                                                {purchaseOrder.purchaseRequest.creator?.employeeId && ` (${purchaseOrder.purchaseRequest.creator.employeeId})`}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {new Date(purchaseOrder.purchaseRequest.createdAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Payment Verified */}
+                                {purchaseOrder.purchaseRequest?.paymentVerifiedAt && (
+                                    <div className="flex items-start gap-3 bg-white p-3 rounded-lg border border-gray-200">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                            <span className="text-green-600 font-bold text-sm">2</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-gray-900">Payment Verified</p>
+                                            <p className="text-xs text-gray-600">
+                                                by {purchaseOrder.purchaseRequest.paymentVerifiedBy?.name || 'Accountant'}
+                                                {purchaseOrder.purchaseRequest.paymentVerifiedBy?.employeeId && ` (${purchaseOrder.purchaseRequest.paymentVerifiedBy.employeeId})`}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {new Date(purchaseOrder.purchaseRequest.paymentVerifiedAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Approved or Rejected */}
+                                {purchaseOrder.purchaseRequest?.approvedAt && (
+                                    <div className="flex items-start gap-3 bg-white p-3 rounded-lg border border-gray-200">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                            <span className="text-green-600 font-bold text-sm">3</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-green-700">Request Approved</p>
+                                            <p className="text-xs text-gray-600">
+                                                by {purchaseOrder.purchaseRequest.approvedBy?.name || purchaseOrder.purchaseRequest.reviewedBy?.name || 'Office User'}
+                                                {(purchaseOrder.purchaseRequest.approvedBy?.employeeId || purchaseOrder.purchaseRequest.reviewedBy?.employeeId) && ` (${purchaseOrder.purchaseRequest.approvedBy?.employeeId || purchaseOrder.purchaseRequest.reviewedBy?.employeeId})`}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {new Date(purchaseOrder.purchaseRequest.approvedAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                {purchaseOrder.purchaseRequest?.rejectedAt && (
+                                    <div className="flex items-start gap-3 bg-white p-3 rounded-lg border border-red-200">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                                            <span className="text-red-600 font-bold text-sm">✗</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-red-700">Request Rejected</p>
+                                            <p className="text-xs text-gray-600">
+                                                by {purchaseOrder.purchaseRequest.rejectedBy?.name || purchaseOrder.purchaseRequest.reviewedBy?.name || 'Office User'}
+                                                {(purchaseOrder.purchaseRequest.rejectedBy?.employeeId || purchaseOrder.purchaseRequest.reviewedBy?.employeeId) && ` (${purchaseOrder.purchaseRequest.rejectedBy?.employeeId || purchaseOrder.purchaseRequest.reviewedBy?.employeeId})`}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {new Date(purchaseOrder.purchaseRequest.rejectedAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* PO Generated */}
+                                {purchaseOrder.createdAt && (
+                                    <div className="flex items-start gap-3 bg-white p-3 rounded-lg border border-gray-200">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                            <span className="text-purple-600 font-bold text-sm">4</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-gray-900">Purchase Order Generated</p>
+                                            <p className="text-xs text-gray-600">
+                                                by {purchaseOrder.creator?.name || 'Office User'}
+                                                {purchaseOrder.creator?.employeeId && ` (${purchaseOrder.creator.employeeId})`}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {new Date(purchaseOrder.createdAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Procurement Confirmed */}
+                                {purchaseOrder.procurementConfirmedAt && (
+                                    <div className="flex items-start gap-3 bg-white p-3 rounded-lg border border-gray-200">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <span className="text-blue-600 font-bold text-sm">5</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-gray-900">Procurement Confirmed</p>
+                                            <p className="text-xs text-gray-600">
+                                                by {purchaseOrder.procurementConfirmedBy?.name || 'Procurement'}
+                                                {purchaseOrder.procurementConfirmedBy?.employeeId && ` (${purchaseOrder.procurementConfirmedBy.employeeId})`}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {new Date(purchaseOrder.procurementConfirmedAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Delivery Received */}
+                                {purchaseOrder.receivedAt && (
+                                    <div className="flex items-start gap-3 bg-white p-3 rounded-lg border border-green-200">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                            <span className="text-green-600 font-bold text-sm">✓</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-green-700">Delivery Received</p>
+                                            <p className="text-xs text-gray-600">
+                                                by {purchaseOrder.receiver?.name || 'Station Manager'}
+                                                {purchaseOrder.receiver?.employeeId && ` (${purchaseOrder.receiver.employeeId})`}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {new Date(purchaseOrder.receivedAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
 
                         {/* Action Buttons */}
                         {canConfirmProcurement && (

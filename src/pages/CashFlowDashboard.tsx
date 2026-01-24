@@ -195,6 +195,175 @@ export const CashFlowDashboard = () => {
     }
   };
 
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const getDateFilterText = () => {
+      if (dateFilterType === 'single') {
+        return `Date: ${new Date(singleDate).toLocaleDateString()}`;
+      } else if (dateFilterType === 'range') {
+        return `Period: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`;
+      }
+      return 'All Time';
+    };
+
+    const totalAmount = filteredTransactions.reduce((sum, tx) => sum + tx.cashToAM, 0);
+    const totalDeposited = filteredTransactions.reduce((sum, tx) => sum + (tx.cashTransfer?.amountDeposited || 0), 0);
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Cash Flow Report - ${new Date().toLocaleDateString()}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { 
+              color: #333; 
+              border-bottom: 2px solid #007bff; 
+              padding-bottom: 10px; 
+              margin-bottom: 5px;
+              font-size: 24px;
+            }
+            .info-grid { 
+              display: grid; 
+              grid-template-columns: 1fr 1fr; 
+              gap: 10px; 
+              margin: 15px 0; 
+            }
+            .info-item { 
+              padding: 8px; 
+              background: #f5f5f5; 
+              border-radius: 4px; 
+            }
+            .info-label { 
+              font-weight: bold; 
+              color: #666; 
+              font-size: 12px;
+            }
+            .info-value {
+              color: #333;
+              font-size: 14px;
+              margin-top: 2px;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0; 
+              font-size: 11px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 6px 8px; 
+              text-align: left; 
+            }
+            th { 
+              background-color: #007bff; 
+              color: white; 
+              font-weight: bold;
+            }
+            tr:nth-child(even) { 
+              background-color: #f9f9f9; 
+            }
+            .status-badge {
+              padding: 2px 6px;
+              border-radius: 3px;
+              font-size: 10px;
+              font-weight: bold;
+            }
+            .status-WITH_AM { background: #fff3cd; color: #856404; }
+            .status-DEPOSITED { background: #d4edda; color: #155724; }
+            .status-PENDING_ACCEPTANCE { background: #d1ecf1; color: #0c5460; }
+            .text-right { text-align: right; }
+            .summary-section {
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 8px;
+              margin: 15px 0;
+            }
+            .footer {
+              margin-top: 20px;
+              padding-top: 10px;
+              border-top: 1px solid #ddd;
+              text-align: center;
+              font-size: 10px;
+              color: #666;
+            }
+            @media print { 
+              button { display: none; }
+              @page { margin: 15mm; size: A4; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Cash Flow Report</h1>
+          
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">Date Filter:</div>
+              <div class="info-value">${getDateFilterText()}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Generated On:</div>
+              <div class="info-value">${new Date().toLocaleString()}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Total Transactions:</div>
+              <div class="info-value">${filteredTransactions.length}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Total Amount:</div>
+              <div class="info-value" style="color: #28a745; font-weight: bold;">${totalAmount.toFixed(2)} SAR</div>
+            </div>
+          </div>
+
+          <div class="summary-section">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">Total Cash to AM:</div>
+                <div class="info-value" style="font-weight: bold;">${totalAmount.toFixed(2)} SAR</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Total Deposited:</div>
+                <div class="info-value" style="color: #28a745; font-weight: bold;">${totalDeposited.toFixed(2)} SAR</div>
+              </div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 140px;">Date</th>
+                <th>Station</th>
+                <th class="text-right" style="width: 100px;">Amount (SAR)</th>
+                <th class="text-right" style="width: 100px;">Deposited (SAR)</th>
+                <th style="width: 120px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredTransactions.map(tx => `
+                <tr>
+                  <td>${new Date(tx.createdAt).toLocaleString()}</td>
+                  <td>${tx.station.name}</td>
+                  <td class="text-right">${tx.cashToAM.toFixed(2)}</td>
+                  <td class="text-right">${tx.cashTransfer?.amountDeposited ? tx.cashTransfer.amountDeposited.toFixed(2) : '0.00'}</td>
+                  <td><span class="status-badge status-${tx.status}">${tx.status.replace(/_/g, ' ')}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p>This is a computer-generated report. No signature is required.</p>
+            <p style="margin-top: 5px;">Darb Station - Fuel Management System</p>
+          </div>
+
+          <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print</button>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const filteredTransactions = transactions;
 
   if (loading) return <div className="flex justify-center p-12"><LoadingSpinner size="lg" /></div>;
@@ -311,6 +480,15 @@ export const CashFlowDashboard = () => {
               )}
             </div>
             <div className="flex gap-2">
+              <button
+                onClick={handlePrint}
+                className="px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 flex items-center gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print
+              </button>
               {isAM && selectedTxIds.length > 0 && (
                 <>
                   <button
@@ -378,6 +556,19 @@ export const CashFlowDashboard = () => {
                     </td>
                     <td className="px-6 py-4 text-sm">
                       {/* Action Buttons (Individual) */}
+                      {tx.cashTransfer?.receiptUrl && (
+                        <a
+                          href={tx.cashTransfer.receiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-xs font-medium"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          View Receipt
+                        </a>
+                      )}
                     </td>
                   </tr>
                 ))}

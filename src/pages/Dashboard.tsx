@@ -33,16 +33,16 @@ interface CashSummary {
 }
 
 export const Dashboard = () => {
-  const { user, isSM, isAM, isAdmin, isOfficeUser, isViewOnly } = useAuth();
+  const { user, isSM, isAM, isAdmin, isOfficeUser, isViewOnly, isOfficeLikeRole } = useAuth();
   const navigate = useNavigate();
 
   const [stationManagers, setStationManagers] = useState<StationManager[]>([]);
   const [areaManager, setAreaManager] = useState<AreaManager | null>(null);
   const [station, setStation] = useState<Station | null>(null);
   const [loading, setLoading] = useState(true);
-  const [assignedStations, setAssignedStations] = useState<Station[]>([]);
   const [cashSummary, setCashSummary] = useState<CashSummary | null>(null);
   const [cashLoading, setCashLoading] = useState(false);
+  const [assignedStations, setAssignedStations] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -53,9 +53,16 @@ export const Dashboard = () => {
       const usersRes = await api.get('/api/users');
       const allUsers = usersRes.data.users;
 
-      if (isAdmin) {
+      if (isAdmin || isOfficeUser || isViewOnly) {
         loadCashSummary();
-      } else if (isAM) {
+      }
+
+      if (isOfficeLikeRole) {
+        const stationsRes = await api.get(`/api/office-users/${user?.id}/stations`);
+        setAssignedStations(stationsRes.data.stations || []);
+      }
+
+      if (isAM) {
         const sms = allUsers.filter((u: any) => u.role === 'SM' && u.areaManagerId === user?.id);
         const stationsRes = await api.get('/api/stations');
         const stations = stationsRes.data.stations;
@@ -77,10 +84,6 @@ export const Dashboard = () => {
           const st = stationsRes.data.stations.find((s: any) => s.id === user.stationId);
           setStation(st);
         }
-      } else if (isOfficeUser || isViewOnly) {
-        // Load assigned stations for Office User or ViewOnly user
-        const res = await api.get(`/api/office-users/${user?.id}/stations`);
-        setAssignedStations(res.data.stations);
       }
     } catch (error) {
       console.error('Failed to load dashboard data', error);
@@ -132,8 +135,8 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Admin: Cash Overview Cards */}
-      {isAdmin && (
+      {/* Admin / OU / ViewOnly: Cash Overview Cards */}
+      {(isAdmin || isOfficeUser || isViewOnly) && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-xl shadow-sm border-l-4 border-primary p-6 card-hover">
             <div className="flex items-center justify-between mb-4">
@@ -193,8 +196,8 @@ export const Dashboard = () => {
         </div>
       )}
 
-      {/* Admin: Inventory Overview */}
-      {isAdmin && (
+      {/* Admin / OU / ViewOnly: Inventory Overview */}
+      {(isAdmin || isOfficeUser || isViewOnly) && (
         <div className="space-y-6">
           <AdminInventoryView onSelectStation={(id) => navigate(`/inventory?stationId=${id}`)} />
           <FuelTankInventoryDashboard />
@@ -222,62 +225,63 @@ export const Dashboard = () => {
         </div>
       )}
 
-      {/* AM: Station Managers */}
-      {isAM && (
+      {/* AM / OU / Accountant / Procurement / ViewOnly: Assigned Stations */}
+      {(isAM || isOfficeLikeRole) && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Station Managers Under You</h2>
-          {stationManagers.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {stationManagers.map((sm) => (
-                <div key={sm.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 card-hover">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-gray-900">{sm.name}</p>
-                      <p className="text-sm text-gray-500">Employee ID: {sm.employeeId}</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            {isAM ? 'Station Managers Under You' : 'Your Assigned Stations'}
+          </h2>
+
+          {isAM ? (
+            stationManagers.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {stationManagers.map((sm) => (
+                  <div key={sm.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 card-hover">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-gray-900">{sm.name}</p>
+                        <p className="text-sm text-gray-500">Employee ID: {sm.employeeId}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-sm text-gray-600">Station:</p>
+                      <p className="font-medium text-gray-900">
+                        {sm.station?.name || <span className="text-red-500">Not Assigned</span>}
+                      </p>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <p className="text-sm text-gray-600">Station:</p>
-                    <p className="font-medium text-gray-900">
-                      {sm.station?.name || <span className="text-red-500">Not Assigned</span>}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No station managers assigned to you yet.</p>
+            )
           ) : (
-            <p className="text-gray-500 text-center py-8">No station managers assigned to you yet.</p>
-          )}
-        </div>
-      )}
-
-      {/* OU / ViewOnly: Assigned Stations */}
-      {(isOfficeUser || isViewOnly) && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Your Assigned Stations</h2>
-          {assignedStations.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {assignedStations.map((s) => (
-                <div key={s.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 card-hover flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold text-gray-900">{s.name}</p>
+            assignedStations.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {assignedStations.map((station) => (
+                  <div key={station.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 card-hover group">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900 group-hover:text-primary transition-colors">{station.name}</p>
+                        <span className={`inline-block px-2 py-0.5 text-[10px] rounded-full mt-1 font-medium ${station.stationType === 'OPERATIONAL' ? 'bg-green-100 text-green-800' :
+                          station.stationType === 'RENTAL' ? 'bg-blue-100 text-blue-800' :
+                            'bg-purple-100 text-purple-800'
+                          }`}>
+                          {station.stationType}
+                        </span>
+                      </div>
+                      <div className="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => navigate(`/inventory?stationId=${s.id}`)}
-                    className="text-primary hover:text-primary/80"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-500 mb-2">No stations assigned to you yet.</p>
-              <p className="text-xs text-gray-400">Please contact administrator to assign stations.</p>
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No stations assigned to your account yet.</p>
+            )
           )}
         </div>
       )}
@@ -327,7 +331,7 @@ export const Dashboard = () => {
           </p>
         </Link>
 
-        {(isAdmin || user?.role === 'Procurement') && (
+        {(isAdmin || user?.role === 'Procurement' || isViewOnly) && (
           <Link
             to="/procurement"
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover group"
@@ -335,7 +339,7 @@ export const Dashboard = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary transition-colors">
                 <svg className="w-6 h-6 text-primary group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 00-2-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
               </div>
               <svg className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
