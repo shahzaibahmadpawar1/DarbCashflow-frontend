@@ -128,7 +128,10 @@ export const CashFlowDashboard = () => {
 
   const handleCreateDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!depositAmount || !depositDate) return;
+    if (!depositAmount || !depositDate || !depositFile) {
+      alert('Please select a receipt image');
+      return;
+    }
 
     try {
       setSubmittingDeposit(true);
@@ -646,10 +649,11 @@ export const CashFlowDashboard = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Image</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Image <span className="text-red-500">*</span></label>
                 <input
                   type="file"
                   accept="image/*"
+                  required
                   onChange={(e) => setDepositFile(e.target.files?.[0] || null)}
                   className="w-full text-sm"
                 />
