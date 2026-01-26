@@ -43,6 +43,11 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
         availableCredits: number;
     } | null>(null);
 
+    const [dateFilterType, setDateFilterType] = useState<'all' | 'single' | 'range'>('all');
+    const [singleDate, setSingleDate] = useState(new Date().toISOString().slice(0, 10));
+    const [startDate, setStartDate] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+    const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
+
     useEffect(() => {
         loadCreditHistory();
     }, [stationId]);
@@ -63,44 +68,127 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
         }
     };
 
+    // Help group transactions by PO and cycle
+    const groupTransactionsByCycle = () => {
+        // First, calculate running balance for all individual transactions (oldest first)
+        const sorted = [...transactions].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        let currentBal = 0;
+        const withBalance = sorted.map(t => {
+            if (t.type === 'UTILIZATION') {
+                currentBal -= t.amount;
+            } else {
+                currentBal += t.amount;
+            }
+            return { ...t, runningBalance: currentBal };
+        });
+
+        // Group by PO ID or PR ID
+        const groups: Record<string, any> = {};
+        const standalone: any[] = [];
+
+        withBalance.forEach(t => {
+            const cycleKey = t.purchaseOrder?.id || t.purchaseRequest?.id;
+
+            if (cycleKey) {
+                if (!groups[cycleKey]) {
+                    groups[cycleKey] = {
+                        id: cycleKey,
+                        date: t.createdAt,
+                        poNumber: t.purchaseOrder?.poNumber || 'N/A',
+                        description: t.description,
+                        creditUsed: 0,
+                        bankDeposit: 0,
+                        otherAmount: 0,
+                        balance: 0,
+                        isCycle: true,
+                        transactions: []
+                    };
+                }
+
+                groups[cycleKey].transactions.push(t);
+                // Update latest balance for this cycle
+                groups[cycleKey].balance = t.runningBalance;
+                groups[cycleKey].date = t.createdAt; // Use latest transaction date for the cycle
+
+                if (t.type === 'UTILIZATION') {
+                    groups[cycleKey].creditUsed += t.amount;
+                } else if (t.type === 'PAYMENT') {
+                    groups[cycleKey].bankDeposit += t.amount;
+                } else {
+                    groups[cycleKey].otherAmount += t.amount;
+                }
+
+                // Keep the description if it contains PO info
+                if (t.description.includes('PO-') || t.description.includes('PO ')) {
+                    groups[cycleKey].description = t.description;
+                }
+            } else {
+                standalone.push({
+                    ...t,
+                    isCycle: false,
+                    creditUsed: t.type === 'UTILIZATION' ? t.amount : 0,
+                    bankDeposit: t.type === 'PAYMENT' ? t.amount : 0,
+                    otherAmount: (t.type !== 'UTILIZATION' && t.type !== 'PAYMENT') ? t.amount : 0,
+                    balance: t.runningBalance
+                });
+            }
+        });
+
+        const allGrouped = [...Object.values(groups), ...standalone];
+        return allGrouped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    };
+
+    const filterByDate = (history: any[]) => {
+        if (dateFilterType === 'all') return history;
+
+        return history.filter(item => {
+            const itemDate = new Date(item.date || item.createdAt);
+
+            if (dateFilterType === 'single') {
+                const filterDate = new Date(singleDate);
+                // Adjust for timezone to compare dates correctly
+                return itemDate.getFullYear() === filterDate.getFullYear() &&
+                    itemDate.getMonth() === filterDate.getMonth() &&
+                    itemDate.getDate() === filterDate.getDate();
+            } else if (dateFilterType === 'range') {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                start.setHours(0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
+                return itemDate >= start && itemDate <= end;
+            }
+            return true;
+        });
+    };
+
+    const groupedHistory = groupTransactionsByCycle();
+    const filteredHistory = filterByDate(groupedHistory);
+
     const handlePrint = () => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
 
-        // Calculate running balance for print
-        let runningBalance = creditSummary?.totalCreditLimit || 0;
-        const transactionsForPrint = transactions.map(t => {
-            const balanceBefore = runningBalance;
-            if (t.type === 'UTILIZATION') {
-                runningBalance -= t.amount;
-            } else if (t.type === 'ALLOCATION' || t.type === 'ADJUSTMENT' || t.type === 'PAYMENT') {
-                runningBalance += t.amount;
-            }
-            return { ...t, balanceBefore, balanceAfter: runningBalance };
-        }).reverse();
-
         // Generate transaction rows HTML
-        const transactionRowsHTML = transactionsForPrint.map(t => `
-            <tr>
-                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${new Date(t.createdAt).toLocaleString()}</td>
-                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">
-                    <span style="padding: 2px 6px; border-radius: 10px; font-size: 8pt; ${t.type === 'ALLOCATION' ? 'background: #dcfce7; color: #166534;' :
-                t.type === 'UTILIZATION' ? 'background: #fee2e2; color: #991b1b;' :
-                    t.type === 'PAYMENT' ? 'background: #dbeafe; color: #1e40af;' :
-                        'background: #fef3c7; color: #92400e;'
-            }">
-                        ${getTypeLabel(t.type)}
-                    </span>
-                </td>
-                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${t.description}</td>
-                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt; text-align: right; font-weight: 600; color: ${t.type === 'UTILIZATION' ? '#dc2626' : '#16a34a'};">
-                    ${t.type === 'UTILIZATION' ? '-' : '+'}${t.amount.toLocaleString()} SAR
-                </td>
-                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt; text-align: right;">${t.balanceAfter.toLocaleString()} SAR</td>
-                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${t.creator.name}</td>
-                <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 9pt;">${t.verifier ? t.verifier.name : 'N/A'}</td>
-            </tr>
-        `).join('');
+        const transactionRowsHTML = filteredHistory.map(t => {
+            const creditIn = (t.bankDeposit || 0) + (t.otherAmount || 0);
+            return `
+                <tr>
+                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt;">${new Date(t.date).toLocaleString()}</td>
+                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt;">${t.isCycle ? (t.poNumber || 'N/A') : '-'}</td>
+                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt;">${t.description}</td>
+                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt; text-align: right; color: #dc2626;">
+                        ${t.creditUsed > 0 ? `-${t.creditUsed.toLocaleString()} SAR` : '-'}
+                    </td>
+                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt; text-align: right; color: #16a34a;">
+                        ${creditIn !== 0 ? `${creditIn > 0 ? '+' : ''}${creditIn.toLocaleString()} SAR` : '-'}
+                    </td>
+                    <td style="border: 1px solid #e5e7eb; padding: 6px 4px; font-size: 8pt; text-align: right; font-weight: 600;">
+                        ${t.balance.toLocaleString()} SAR
+                    </td>
+                </tr>
+            `;
+        }).join('');
 
         printWindow.document.write(`
             <html>
@@ -183,7 +271,9 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
                 </head>
                 <body>
                     <h1>Credit History Report</h1>
-                    <p class="subtitle">${stationName} • Generated on ${new Date().toLocaleString()}</p>
+                    <p class="subtitle">${stationName} • Generated on ${new Date().toLocaleString()}${dateFilterType === 'single' ? ` • Date: ${singleDate}` :
+                dateFilterType === 'range' ? ` • Period: ${startDate} to ${endDate}` : ''
+            }</p>
 
                     <div class="summary-grid">
                         <div class="summary-card blue">
@@ -201,18 +291,17 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
                     </div>
 
                     <h2 style="font-size: 14pt; color: #374151; margin: 20px 0 10px 0;">Transaction History</h2>
-                    <p style="font-size: 9pt; color: #6b7280; margin: 0 0 10px 0;">Total Transactions: ${transactions.length}</p>
+                    <p style="font-size: 9pt; color: #6b7280; margin: 0 0 10px 0;">Total Transactions: ${filteredHistory.length}</p>
 
                     <table>
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Type</th>
+                                <th>PO #</th>
                                 <th>Description</th>
-                                <th class="text-right">Amount</th>
+                                <th class="text-right">Credit Used</th>
+                                <th class="text-right">Credit In / Payment</th>
                                 <th class="text-right">Balance</th>
-                                <th>Created By</th>
-                                <th>Verified By</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -228,36 +317,24 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
     };
 
     const handleExportToExcel = () => {
-        if (transactions.length === 0) {
+        if (filteredHistory.length === 0) {
             alert('No transactions to export');
             return;
         }
 
-        // Calculate running balance for export
-        let runningBalance = creditSummary?.totalCreditLimit || 0;
-        const transactionsWithBalance = transactions.map(t => {
-            const balanceBefore = runningBalance;
-            if (t.type === 'UTILIZATION') {
-                runningBalance -= t.amount;
-            } else if (t.type === 'ALLOCATION' || t.type === 'ADJUSTMENT' || t.type === 'PAYMENT') {
-                runningBalance += t.amount;
-            }
-            return { ...t, balanceBefore, balanceAfter: runningBalance };
-        }).reverse();
-
         // Create CSV content
-        const headers = ['Date', 'Type', 'Description', 'Amount (SAR)', 'Balance (SAR)', 'Created By', 'Verified By'];
+        const headers = ['Date', 'PO #', 'Description', 'Credit Used (SAR)', 'Credit In / Payment (SAR)', 'Balance (SAR)'];
         const csvRows = [headers.join(',')];
 
-        transactionsWithBalance.forEach(t => {
+        filteredHistory.forEach(t => {
+            const creditIn = (t.bankDeposit || 0) + (t.otherAmount || 0);
             const row = [
-                new Date(t.createdAt).toLocaleString(),
-                getTypeLabel(t.type),
-                `"${t.description.replace(/"/g, '""')}"`, // Escape quotes in description
-                t.type === 'UTILIZATION' ? `-${t.amount}` : `+${t.amount}`,
-                t.balanceAfter,
-                t.creator.name,
-                t.verifier?.name || 'N/A'
+                new Date(t.date).toLocaleString(),
+                t.poNumber || '-',
+                `"${t.description.replace(/"/g, '""')}"`,
+                t.creditUsed > 0 ? `-${t.creditUsed}` : '0',
+                creditIn !== 0 ? `${creditIn > 0 ? '+' : ''}${creditIn}` : '0',
+                t.balance
             ];
             csvRows.push(row.join(','));
         });
@@ -333,28 +410,6 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
         }
     };
 
-    const getFuelTypeLabel = (fuelType: string) => {
-        switch (fuelType) {
-            case '91_GASOLINE': return '91 Gasoline';
-            case '95_GASOLINE': return '95 Gasoline';
-            case '98_GASOLINE': return '98 Gasoline';
-            case 'DIESEL': return 'Diesel';
-            default: return fuelType;
-        }
-    };
-
-    // Calculate running balance
-    let runningBalance = creditSummary?.totalCreditLimit || 0;
-    const transactionsWithBalance = transactions.map(t => {
-        const balanceBefore = runningBalance;
-        if (t.type === 'UTILIZATION') {
-            runningBalance -= t.amount;
-        } else if (t.type === 'ALLOCATION' || t.type === 'ADJUSTMENT' || t.type === 'PAYMENT') {
-            runningBalance += t.amount;
-        }
-        return { ...t, balanceBefore, balanceAfter: runningBalance };
-    }).reverse(); // Reverse to show oldest first with correct running balance
-
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -366,7 +421,6 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
                             <p className="text-white/90 mt-1">{stationName}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            {/* Export to Excel Button */}
                             <button
                                 onClick={handleExportToExcel}
                                 disabled={loading || transactions.length === 0}
@@ -378,7 +432,6 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
                                 </svg>
                                 Export
                             </button>
-                            {/* Print Button */}
                             <button
                                 onClick={handlePrint}
                                 disabled={loading || transactions.length === 0}
@@ -422,100 +475,155 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
                     </div>
                 )}
 
-                {/* Print-only Header */}
-                <div className="hidden print:block p-6 border-b border-gray-200">
-                    <div className="text-center mb-4">
-                        <h1 className="text-3xl font-bold text-gray-900">Credit History Report</h1>
-                        <p className="text-xl text-gray-700 mt-2">{stationName}</p>
-                        <p className="text-sm text-gray-600 mt-1">Generated on: {new Date().toLocaleString()}</p>
-                    </div>
-                    {creditSummary && (
-                        <div className="grid grid-cols-3 gap-4 mt-4 border-t border-gray-200 pt-4">
-                            <div className="text-center">
-                                <p className="text-sm text-gray-600">Total Credit Limit</p>
-                                <p className="text-xl font-bold text-gray-900">{creditSummary.totalCreditLimit.toLocaleString()} SAR</p>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-sm text-gray-600">Utilized Credits</p>
-                                <p className="text-xl font-bold text-red-600">{creditSummary.utilizedCredits.toLocaleString()} SAR</p>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-sm text-gray-600">Available Credits</p>
-                                <p className="text-xl font-bold text-green-600">{creditSummary.availableCredits.toLocaleString()} SAR</p>
+                {/* Date Filter Selection */}
+                <div className="p-6 bg-white border-b border-gray-100">
+                    <div className="flex flex-wrap gap-4 items-end">
+                        <div className="flex-1">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Date Filter</label>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setDateFilterType('all')}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-all ${dateFilterType === 'all'
+                                        ? 'bg-primary text-white shadow-md'
+                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                        }`}
+                                >
+                                    All Time
+                                </button>
+                                <button
+                                    onClick={() => setDateFilterType('single')}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-all ${dateFilterType === 'single'
+                                        ? 'bg-primary text-white shadow-md'
+                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                        }`}
+                                >
+                                    Single Date
+                                </button>
+                                <button
+                                    onClick={() => setDateFilterType('range')}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-all ${dateFilterType === 'range'
+                                        ? 'bg-primary text-white shadow-md'
+                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                        }`}
+                                >
+                                    Date Range
+                                </button>
                             </div>
                         </div>
-                    )}
+
+                        {dateFilterType === 'single' && (
+                            <div className="animate-in fade-in slide-in-from-left-2 duration-300">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Select Date</label>
+                                <input
+                                    type="date"
+                                    value={singleDate}
+                                    onChange={(e) => setSingleDate(e.target.value)}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-white shadow-sm"
+                                />
+                            </div>
+                        )}
+
+                        {dateFilterType === 'range' && (
+                            <div className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">From</label>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-white shadow-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">To</label>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-white shadow-sm"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Transactions List */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-6 bg-gray-50/30">
                     {loading ? (
                         <div className="flex justify-center items-center py-12">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                         </div>
-                    ) : transactions.length === 0 ? (
-                        <div className="text-center py-12">
-                            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ) : filteredHistory.length === 0 ? (
+                        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+                            <svg className="w-16 h-16 text-gray-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <p className="text-gray-500 text-lg">No credit transactions found</p>
+                            <p className="text-gray-400 text-lg font-medium">No transactions found for the selected period</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {transactionsWithBalance.map((transaction) => (
+                            {filteredHistory.map((group) => (
                                 <div
-                                    key={transaction.id}
+                                    key={group.id}
                                     className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
                                 >
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex items-start gap-3 flex-1">
                                             <div className="p-2 bg-gray-50 rounded-lg">
-                                                {getTypeIcon(transaction.type)}
+                                                {group.creditUsed > 0 ? getTypeIcon('UTILIZATION') : getTypeIcon('PAYMENT')}
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(transaction.type)}`}>
-                                                        {getTypeLabel(transaction.type)}
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${group.isCycle ? 'bg-primary/10 text-primary' : getTypeColor(group.transactions?.[0]?.type || 'ALLOCATION')}`}>
+                                                        {group.isCycle ? 'PO Cycle' : getTypeLabel(group.transactions?.[0]?.type || 'ALLOCATION')}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
-                                                        {new Date(transaction.createdAt).toLocaleString()}
+                                                        {new Date(group.date).toLocaleString()}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm text-gray-900 font-medium mb-1">{transaction.description}</p>
+                                                <p className="text-sm text-gray-900 font-medium mb-1">{group.description}</p>
                                                 <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-                                                    <span>By: {transaction.creator.name}</span>
-                                                    {transaction.verifier && (
-                                                        <span>• Verified by: {transaction.verifier.name}</span>
+                                                    {group.poNumber && group.poNumber !== 'N/A' && (
+                                                        <span>• PO: {group.poNumber}</span>
                                                     )}
-                                                    {transaction.purchaseRequest && (
-                                                        <span>• PR: {getFuelTypeLabel(transaction.purchaseRequest.fuelType)} - {transaction.purchaseRequest.quantityLiters}L</span>
-                                                    )}
-                                                    {transaction.purchaseOrder && (
-                                                        <span>• PO: {transaction.purchaseOrder.poNumber}</span>
+                                                    {group.isCycle && (
+                                                        <span className="text-gray-400">Contains {group.transactions.length} events</span>
                                                     )}
                                                 </div>
-                                                {transaction.receiptUrl && (
-                                                    <a
-                                                        href={transaction.receiptUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 mt-2"
-                                                    >
-                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                                        </svg>
-                                                        View Receipt
-                                                    </a>
-                                                )}
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className={`text-lg font-bold ${transaction.type === 'UTILIZATION' ? 'text-red-600' : 'text-green-600'}`}>
-                                                {transaction.type === 'UTILIZATION' ? '-' : '+'}{transaction.amount.toLocaleString()} SAR
-                                            </p>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                Balance: {transaction.balanceAfter.toLocaleString()} SAR
-                                            </p>
+                                        <div className="flex gap-8">
+                                            {group.creditUsed > 0 && (
+                                                <div className="text-right min-w-[100px]">
+                                                    <p className="text-xs text-gray-500 mb-1 font-medium">Credit Used</p>
+                                                    <p className="text-sm font-bold text-red-600">
+                                                        -{group.creditUsed.toLocaleString()} SAR
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {group.bankDeposit > 0 && (
+                                                <div className="text-right min-w-[100px]">
+                                                    <p className="text-xs text-gray-500 mb-1 font-medium">Bank Deposit</p>
+                                                    <p className="text-sm font-bold text-green-600">
+                                                        +{group.bankDeposit.toLocaleString()} SAR
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {group.otherAmount !== 0 && (
+                                                <div className="text-right min-w-[100px]">
+                                                    <p className="text-xs text-gray-500 mb-1 font-medium">Amount</p>
+                                                    <p className={`text-sm font-bold ${group.otherAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                        {group.otherAmount >= 0 ? '+' : ''}{group.otherAmount.toLocaleString()} SAR
+                                                    </p>
+                                                </div>
+                                            )}
+                                            <div className="text-right min-w-[120px]">
+                                                <p className="text-xs text-gray-500 mb-1 font-medium">Running Balance</p>
+                                                <p className="text-sm font-bold text-gray-900 bg-gray-50 px-2 py-0.5 rounded">
+                                                    {group.balance.toLocaleString()} SAR
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -528,7 +636,7 @@ export const CreditHistoryModal = ({ stationId, stationName, onClose }: CreditHi
                 <div className="p-4 border-t border-gray-200 bg-gray-50">
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-gray-600">
-                            Total Transactions: {transactions.length}
+                            Total Items: {filteredHistory.length}
                         </p>
                         <button
                             onClick={onClose}
