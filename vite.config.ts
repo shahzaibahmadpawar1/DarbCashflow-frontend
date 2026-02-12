@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
-    base: '/darbcashflow/',
+    base: '/',
     plugins: [react()],
     server: {
       port: 3000,

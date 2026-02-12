@@ -209,7 +209,7 @@ export const PrintTankDeliveryReportModal = ({ stationId, stationName, onClose }
             const opening = d.openingBalance || 0;
             const consumption = d.consumption || 0;
             const delivery = d.litersDelivered || 0;
-            const total = (opening + delivery) - consumption;
+            const total = opening;
 
             return `
                     <tr>
@@ -362,7 +362,7 @@ export const PrintTankDeliveryReportModal = ({ stationId, stationName, onClose }
                                         const opening = d.openingBalance || 0;
                                         const consumption = d.consumption || 0;
                                         const delivery = d.litersDelivered || 0;
-                                        const total = (opening + delivery) - consumption;
+                                        const total = opening;
 
                                         return (
                                             <tr key={d.id} className="hover:bg-gray-50">

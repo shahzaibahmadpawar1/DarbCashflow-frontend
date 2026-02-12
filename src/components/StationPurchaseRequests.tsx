@@ -42,6 +42,11 @@ interface PurchaseRequest {
             totalAmount: number;
             paymentAmount: number;
             requestedDeliveryDate: string;
+            paymentVerifiedAt?: string;
+            paymentVerifiedBy?: { id: string; name: string; employeeId?: string };
+            approvedAt?: string;
+            approvedBy?: { id: string; name: string; employeeId?: string };
+            createdAt?: string;
             receiptUrl?: string;
             station: {
                 name: string;
@@ -241,6 +246,11 @@ export const StationPurchaseRequests = ({ stationId, stationName, onPOReceived }
                                                     receiptUrl: pr.receiptUrl,
                                                     bankDepositAmount: pr.bankDepositAmount,
                                                     bankDepositReceiptUrl: pr.bankDepositReceiptUrl,
+                                                    paymentVerifiedAt: (pr as any).paymentVerifiedAt,
+                                                    paymentVerifiedBy: (pr as any).paymentVerifiedBy,
+                                                    approvedAt: (pr as any).approvedAt,
+                                                    approvedBy: (pr as any).approvedBy,
+                                                    createdAt: pr.createdAt,
                                                     station: (pr as any).station || { name: stationName }
                                                 }
                                             });

@@ -23,6 +23,13 @@ interface PurchaseOrder {
         transportationCost: number;
         totalAmount: number;
         paymentAmount: number;
+        paymentVerified?: boolean;
+        paymentVerifiedAt?: string;
+        paymentVerifiedBy?: { id: string; name: string; employeeId?: string };
+        approvedAt?: string;
+        approvedBy?: { id: string; name: string; employeeId?: string };
+        createdAt?: string;
+        creator?: { id: string; name: string; employeeId?: string };
         station: {
             name: string;
         };

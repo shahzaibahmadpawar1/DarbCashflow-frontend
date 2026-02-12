@@ -107,6 +107,11 @@ export const PRPOHistoryModal = ({ stationId, stationName, onClose }: PRPOHistor
                     receiptUrl: request.receiptUrl,
                     bankDepositAmount: request.bankDepositAmount,
                     bankDepositReceiptUrl: request.bankDepositReceiptUrl,
+                    paymentVerifiedAt: (request as any).paymentVerifiedAt,
+                    paymentVerifiedBy: (request as any).paymentVerifiedBy,
+                    approvedAt: (request as any).approvedAt,
+                    approvedBy: (request as any).approvedBy,
+                    createdAt: request.createdAt,
                     station: { name: stationName }
                 }
             });

@@ -28,7 +28,7 @@ function App() {
 
   // FIXED: Added basename here so the app knows it lives in a folder
   return (
-    <Router basename="/darbcashflow">
+    <Router basename="/">
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route

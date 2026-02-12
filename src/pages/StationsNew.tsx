@@ -62,6 +62,13 @@ export const Stations = () => {
         { fuelType: 'DIESEL', pricePerLiter: '' },
     ]);
 
+    const [tankLevels, setTankLevels] = useState<Record<string, string>>({
+        '91_GASOLINE': '',
+        '95_GASOLINE': '',
+        '98_GASOLINE': '',
+        'DIESEL': '',
+    });
+
     // Station nozzles viewing/editing
     const [selectedStation, setSelectedStation] = useState<Station | null>(null);
     const [stationNozzles, setStationNozzles] = useState<Nozzle[]>([]);
@@ -90,6 +97,11 @@ export const Stations = () => {
     const [editingFuelPrice, setEditingFuelPrice] = useState<string | null>(null);
     const [newFuelPrice, setNewFuelPrice] = useState<number>(0);
     const [modalFuelPrices, setModalFuelPrices] = useState<any[]>([]);
+
+    // Tank level editing in modal
+    const [stationTanks, setStationTanks] = useState<any[]>([]);
+    const [editingTank, setEditingTank] = useState<string | null>(null);
+    const [newTankLevel, setNewTankLevel] = useState<number>(0);
 
     // Station details editing
     const [editingStationName, setEditingStationName] = useState(false);
@@ -153,10 +165,13 @@ export const Stations = () => {
             // Prepare fuel prices
             const prices = fuelPrices.filter(p => p.pricePerLiter && parseFloat(p.pricePerLiter) > 0);
 
-            // Create station with nozzle configuration and station manager assignment
+            // Create station with nozzle configuration, tank levels, and fuel prices
             await api.post('/api/stations', {
                 ...formData,
                 nozzles,
+                tankLevels: Object.fromEntries(
+                    Object.entries(tankLevels).map(([type, level]) => [type, parseFloat(level) || 0])
+                ),
                 fuelPrices: prices.map(p => ({
                     fuelType: p.fuelType,
                     pricePerLiter: parseFloat(p.pricePerLiter),
@@ -191,17 +206,25 @@ export const Stations = () => {
             { fuelType: '98_GASOLINE', pricePerLiter: '' },
             { fuelType: 'DIESEL', pricePerLiter: '' },
         ]);
+        setTankLevels({
+            '91_GASOLINE': '',
+            '95_GASOLINE': '',
+            '98_GASOLINE': '',
+            'DIESEL': '',
+        });
     };
 
     const handleViewNozzles = async (station: Station) => {
         try {
-            const [nozzlesRes, pricesRes] = await Promise.all([
+            const [nozzlesRes, pricesRes, tanksRes] = await Promise.all([
                 api.get(`/api/inventory/stations/${station.id}/nozzles`),
-                api.get(`/api/fuel/prices/station/${station.id}`)
+                api.get(`/api/fuel/prices/station/${station.id}`),
+                api.get(`/api/inventory/stations/${station.id}/tanks`)
             ]);
 
             setStationNozzles(nozzlesRes.data.nozzles || []);
             setModalFuelPrices(pricesRes.data.prices || []);
+            setStationTanks(tanksRes.data.tanks || []);
             setSelectedStation(station);
             setShowNozzlesModal(true);
         } catch (error: any) {
@@ -404,6 +427,30 @@ export const Stations = () => {
             alert(error.response?.data?.error || 'Failed to update station type');
         }
     };
+
+    const handleEditTankLevel = (tank: any) => {
+        setEditingTank(tank.id);
+        setNewTankLevel(tank.currentLevel);
+    };
+
+    const handleSaveTankLevel = async (tankId: string) => {
+        if (!selectedStation) return;
+
+        try {
+            await api.patch(`/api/inventory/tanks/${tankId}/level`, {
+                currentLevel: newTankLevel,
+            });
+            alert('Tank level updated successfully!');
+            setEditingTank(null);
+
+            // Reload tanks
+            const tanksRes = await api.get(`/api/inventory/stations/${selectedStation.id}/tanks`);
+            setStationTanks(tanksRes.data.tanks || []);
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'Failed to update tank level');
+        }
+    };
+
 
     const handleDeleteStation = async () => {
         if (!selectedStation) return;
@@ -670,24 +717,44 @@ export const Stations = () => {
 
                         {/* Fuel Prices */}
                         <div className="border-t border-gray-200 pt-4">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Fuel Prices</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {fuelPrices.map((price, index) => (
-                                    <div key={price.fuelType}>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            {getFuelTypeLabel(price.fuelType)} (SAR/Liter)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                            placeholder="0.00"
-                                            value={price.pricePerLiter}
-                                            onChange={(e) => handlePriceChange(index, e.target.value)}
-                                        />
-                                    </div>
-                                ))}
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Fuel Prices & Initial Tank Levels</h3>
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    {fuelPrices.map((price, index) => (
+                                        <div key={price.fuelType}>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                {getFuelTypeLabel(price.fuelType)} Price (SAR/L)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                placeholder="0.00"
+                                                value={price.pricePerLiter}
+                                                onChange={(e) => handlePriceChange(index, e.target.value)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    {Object.keys(tankLevels).map((fuelType) => (
+                                        <div key={`tank-${fuelType}`}>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                {getFuelTypeLabel(fuelType)} Tank Level (L)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                placeholder="0.00"
+                                                value={tankLevels[fuelType]}
+                                                onChange={(e) => setTankLevels({ ...tankLevels, [fuelType]: e.target.value })}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
@@ -1239,6 +1306,56 @@ export const Stations = () => {
                                             })}
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+                            {/* Tank Levels Section */}
+                            <div className="mt-6 border-t border-gray-200 pt-6">
+                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Tank Levels (Liters)</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {stationTanks.map((tank) => (
+                                        <div key={tank.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-700">{getFuelTypeLabel(tank.fuelType)}</p>
+                                                    {editingTank === tank.id ? (
+                                                        <div className="mt-2 flex gap-2">
+                                                            <input
+                                                                type="number"
+                                                                value={newTankLevel}
+                                                                onChange={(e) => setNewTankLevel(parseFloat(e.target.value) || 0)}
+                                                                className="w-full px-3 py-1 border border-gray-300 rounded text-sm no-arrows"
+                                                                step="0.01"
+                                                            />
+                                                            <button
+                                                                onClick={() => handleSaveTankLevel(tank.id)}
+                                                                className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90"
+                                                            >
+                                                                Save
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setEditingTank(null)}
+                                                                className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-lg font-bold text-gray-900">
+                                                            {tank.currentLevel ? tank.currentLevel.toFixed(2) : '0.00'} L
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                {isAdmin && editingTank !== tank.id && (
+                                                    <button
+                                                        onClick={() => handleEditTankLevel(tank)}
+                                                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"
+                                                    >
+                                                        Edit Level
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
